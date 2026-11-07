@@ -20,7 +20,7 @@ Before M1: run the milestone commit below, then make the repo public and push (H
 ## Milestone commit
 
 ```bash
-cd ~/Projects/Umbraco.Community.UserActivity
+# from the repository root
 git status --short          # check: no secrets, no appsettings.*.local, no user-secrets, no review docs, no spikes/
 git add -A
 git commit -m "docs: M0 spikes and gates for both lines"
