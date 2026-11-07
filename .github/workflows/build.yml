@@ -1,0 +1,178 @@
+name: Build and Test
+
+# Fast PR checks only (about 5 minutes): build and SQLite tests at the floor and at the latest minor, client build and
+# wwwroot drift, gitleaks, osv-scanner and check-vulnerable. Both Umbraco lines (17 and 18) build from this one branch,
+# selected by -p:UmbracoMajor. Never add e2e or SQL Server here: they live in
+# release-checks.yml, which is run by hand.
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+env:
+  DOTNET_NOLOGO: true
+  DOTNET_CLI_TELEMETRY_OPTOUT: true
+  CLIENT_DIR: src/Umbraco.Community.UserActivity/Client
+  SLN: src/Umbraco.Community.UserActivity.slnx
+
+jobs:
+  build:
+    name: build (${{ matrix.line }} ${{ matrix.leg }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        line: ['17', '18']
+        # floor: locked restore at the committed packages.<line>.lock.json (UmbracoTestVersion / UmbracoDemoVersion defaults).
+        # latest: newest <line>.x, restored unlocked; the lock files it rewrites are never committed.
+        leg: [floor, latest]
+    # MSBuild reads environment variables as properties: UmbracoMajor picks the line, and the latest leg floats the test and
+    # demo Umbraco versions. Empty values fall through to Directory.Build.props defaults (the floor).
+    env:
+      UmbracoMajor: ${{ matrix.line }}
+      UmbracoTestVersion: ${{ matrix.leg == 'latest' && format('{0}.*', matrix.line) || '' }}
+      UmbracoDemoVersion: ${{ matrix.leg == 'latest' && format('{0}.*', matrix.line) || '' }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@0f4a354dd5547a28c70b7853dbd95d5b67886e73 # v6.1.0
+        with:
+          dotnet-version: '10.x'
+          # NuGet cache keyed on the lock files. Not used in publish.yml, so a release never restores from a PR-filled cache.
+          cache: true
+          cache-dependency-path: '**/packages.*.lock.json'
+
+      # The package project embeds wwwroot, so the committed client build must be present; the client job proves it is fresh.
+      - name: Restore (locked)
+        if: matrix.leg == 'floor'
+        run: dotnet restore "$SLN" --locked-mode
+
+      - name: Lock files unchanged
+        if: matrix.leg == 'floor'
+        run: git diff --exit-code -- '**/packages.*.lock.json'
+
+      - name: Restore (latest minor, unlocked)
+        if: matrix.leg == 'latest'
+        run: dotnet restore "$SLN" --force-evaluate -p:RestoreLockedMode=false
+
+      - name: Build
+        run: dotnet build "$SLN" -c Release --no-restore
+
+      # Unit and integration tests (SQLite). SQL Server and e2e run in release-checks.yml.
+      - name: Test
+        run: dotnet test "$SLN" -c Release --no-build --logger "trx;LogFileName=results.trx"
+
+      - name: Upload test results
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: always()
+        with:
+          name: test-results-${{ matrix.line }}-${{ matrix.leg }}
+          path: '**/results.trx'
+
+  client:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Setup Node
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: src/Umbraco.Community.UserActivity/Client/.nvmrc
+          cache: npm
+          cache-dependency-path: src/Umbraco.Community.UserActivity/Client/package-lock.json
+
+      # --ignore-scripts: no dependency install script runs in CI.
+      - name: Install client dependencies
+        working-directory: ${{ env.CLIENT_DIR }}
+        run: npm ci --ignore-scripts
+
+      - name: Build client
+        working-directory: ${{ env.CLIENT_DIR }}
+        run: npm run build
+
+      # No HTML sinks and literal localisation keys only (build/check-xss.sh).
+      - name: XSS guard
+        run: bash build/check-xss.sh
+
+      - name: Client tests
+        working-directory: ${{ env.CLIENT_DIR }}
+        run: npm test
+
+      # The built client in wwwroot is committed; fail if it differs from a fresh build.
+      - name: Check committed wwwroot matches the build
+        run: |
+          git diff --exit-code -- src/Umbraco.Community.UserActivity/wwwroot
+          # git diff ignores untracked files, so a new hashed chunk from a drifted build needs its own check.
+          test -z "$(git status --porcelain -- src/Umbraco.Community.UserActivity/wwwroot)"
+
+      # Proves the Vite external held: core client code is imported at runtime, never bundled.
+      - name: Check @umbraco-cms/backoffice stayed external
+        run: |
+          if grep -rqE "from [\"']@umbraco-cms/backoffice/" src/Umbraco.Community.UserActivity/Client/src; then
+            grep -rqE --include='*.js' "[\"']@umbraco-cms/backoffice/" src/Umbraco.Community.UserActivity/wwwroot/
+          fi
+
+      # One bundle serves both lines (built against ^17.8.0). Type-check the source against the 18 line too, in a
+      # temp copy, so an 18-only break shows on the PR.
+      - name: Type-check against @umbraco-cms/backoffice 18
+        run: |
+          tmp="$(mktemp -d)"
+          cp -R "$CLIENT_DIR/." "$tmp/"
+          cd "$tmp"
+          rm -rf node_modules
+          npm ci --ignore-scripts
+          npm i --no-save --ignore-scripts "@umbraco-cms/backoffice@^18.3.0"
+          npx tsc --noEmit
+
+  secrets:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+      # Scans every commit in the PR range: put `// gitleaks:allow` on fake test secrets in the commit that adds them.
+      - name: gitleaks
+        run: bash build/gitleaks.sh "${{ github.event.pull_request.base.sha || github.event.before }}..${{ github.sha }}"
+
+  osv:
+    permissions:
+      contents: read
+      actions: read
+      security-events: write
+    uses: google/osv-scanner-action/.github/workflows/osv-scanner-reusable.yml@b1d267aea5211fa648d9d442fa64b90dbdcbdd36 # v2.7.0
+    with:
+      fail-on-vuln: true
+      upload-sarif: false
+      scan-args: |-
+        --config=./osv-scanner.toml
+        --recursive
+        ./
+
+  deps:
+    name: deps (${{ matrix.line }})
+    needs: osv
+    runs-on: ubuntu-latest
+    env:
+      UmbracoMajor: ${{ matrix.line }}
+    strategy:
+      fail-fast: false
+      matrix:
+        line: ['17', '18']
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Setup .NET
+        uses: actions/setup-dotnet@0f4a354dd5547a28c70b7853dbd95d5b67886e73 # v6.1.0
+        with:
+          dotnet-version: '10.x'
+          # NuGet cache keyed on the lock files. Not used in publish.yml, so a release never restores from a PR-filled cache.
+          cache: true
+          cache-dependency-path: '**/packages.*.lock.json'
+      - name: Restore (locked)
+        run: dotnet restore "$SLN" --locked-mode
+      - name: Vulnerable packages (direct and transitive)
+        run: bash build/check-vulnerable.sh "$SLN"

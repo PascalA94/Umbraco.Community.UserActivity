@@ -1,0 +1,13 @@
+{
+  "name": "Umbraco.Community.UserActivity",
+  "version": "0.0.0",
+  "allowTelemetry": true,
+  "extensions": [
+    {
+      "type": "bundle",
+      "alias": "UserActivity.Bundle",
+      "name": "User Activity Bundle",
+      "js": "/App_Plugins/UserActivity/index.js"
+    }
+  ]
+}

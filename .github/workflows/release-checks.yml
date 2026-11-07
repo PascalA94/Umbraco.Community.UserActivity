@@ -1,0 +1,178 @@
+name: Release checks
+
+on:
+  # Run by hand before every release (Actions -> Release checks -> Run workflow), and after a new Umbraco minor.
+  # Not on PRs or a schedule: e2e and SQL Server take 10-25 minutes and catch Umbraco or database regressions.
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  DOTNET_NOLOGO: true
+  DOTNET_CLI_TELEMETRY_OPTOUT: true
+
+jobs:
+  integration-sqlserver:
+    name: integration-sqlserver (${{ matrix.line }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        line: ['17', '18']
+    env:
+      Tests__Database__DatabaseType: SqlServer
+      # MSBuild reads environment variables as properties: this picks the Umbraco line (Directory.Build.props).
+      UmbracoMajor: ${{ matrix.line }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      # SQL Server gets a random password per run, masked in the logs; nothing is stored in the repo.
+      # docker run (not a services: block) so the password can be random.
+      - name: Start SQL Server with a random throwaway password
+        run: |
+          pw="Ci-$(openssl rand -hex 16)-Aa1!"
+          echo "::add-mask::$pw"
+          docker run -d --name sqlserver -e ACCEPT_EULA=Y -e "MSSQL_SA_PASSWORD=$pw" -p 1433:1433 mcr.microsoft.com/mssql/server:2022-latest
+          for _ in $(seq 1 60); do
+            docker exec sqlserver /opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P "$pw" -C -Q 'SELECT 1' >/dev/null 2>&1 && break
+            sleep 2
+          done
+          docker exec sqlserver /opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P "$pw" -C -Q 'SELECT 1' >/dev/null
+          echo "SA_PASSWORD=$pw" >> "$GITHUB_ENV"
+          echo "Tests__Database__SQLServerMasterConnectionString=Server=localhost,1433;User Id=sa;Password=$pw;TrustServerCertificate=true;Encrypt=false" >> "$GITHUB_ENV"
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@0f4a354dd5547a28c70b7853dbd95d5b67886e73 # v6.1.0
+        with:
+          dotnet-version: '10.x'
+          # NuGet cache keyed on the lock files. Not used in publish.yml, so a release never restores from a PR-filled cache.
+          cache: true
+          cache-dependency-path: '**/packages.*.lock.json'
+
+      - name: Restore (locked, floor)
+        run: dotnet restore src/Umbraco.Community.UserActivity.slnx --locked-mode
+
+      - name: Build
+        run: dotnet build src/Umbraco.Community.UserActivity.slnx -c Release --no-restore
+
+      - name: Integration tests on SQL Server
+        run: dotnet test src/Umbraco.Community.UserActivity.IntegrationTests -c Release --no-build --logger "trx;LogFileName=sqlserver.trx"
+
+      - name: Upload test results
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: always()
+        with:
+          name: release-checks-sqlserver-${{ matrix.line }}
+          path: '**/*.trx'
+
+  # Playwright against the demo site, on each line at its floor and at its newest minor.
+  e2e:
+    name: e2e (${{ matrix.line }} ${{ matrix.leg }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        line: ['17', '18']
+        leg: [floor, latest]
+    env:
+      # MSBuild reads environment variables as properties: UmbracoMajor picks the line, and the latest leg floats the demo's
+      # Umbraco version. An empty value falls through to the Directory.Build.props default (the floor).
+      UmbracoMajor: ${{ matrix.line }}
+      UmbracoDemoVersion: ${{ matrix.leg == 'latest' && format('{0}.*', matrix.line) || '' }}
+      ASPNETCORE_ENVIRONMENT: Development
+      ConnectionStrings__umbracoDbDSN_ProviderName: Microsoft.Data.SqlClient
+      # Umbraco's OpenIddict server refuses plain HTTP (ID2083), so the demo runs on HTTPS with the .NET dev certificate.
+      URL: https://localhost:44331
+      # Invitation links need a fixed application URL on Umbraco 18.3+.
+      Umbraco__CMS__WebRouting__UmbracoApplicationUrl: https://localhost:44331
+      ADMIN_EMAIL: admin@example.test
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      # SQL Server and every login get a random password per run, masked in the logs; nothing is stored in the repo.
+      - name: Start SQL Server with a random throwaway password
+        run: |
+          pw="Ci-$(openssl rand -hex 16)-Aa1!"
+          echo "::add-mask::$pw"
+          docker run -d --name sqlserver -e ACCEPT_EULA=Y -e "MSSQL_SA_PASSWORD=$pw" -p 1433:1433 mcr.microsoft.com/mssql/server:2022-latest
+          for _ in $(seq 1 60); do
+            docker exec sqlserver /opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P "$pw" -C -Q 'SELECT 1' >/dev/null 2>&1 && break
+            sleep 2
+          done
+          docker exec sqlserver /opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P "$pw" -C -Q 'SELECT 1' >/dev/null
+          echo "SA_PASSWORD=$pw" >> "$GITHUB_ENV"
+          # The demo runs on SQL Server, not SQLite: SQLite allows one writer at a time, and plain Umbraco can stall when the
+          # backoffice and a test save users at once, which made e2e flaky. SQLite stays covered by every PR's integration tests.
+          docker exec sqlserver /opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P "$pw" -C -Q 'CREATE DATABASE UserActivityDemo'
+          echo "ConnectionStrings__umbracoDbDSN=Server=localhost,1433;Database=UserActivityDemo;User Id=sa;Password=$pw;TrustServerCertificate=true;Encrypt=false" >> "$GITHUB_ENV"
+
+      - name: Generate random demo passwords
+        run: |
+          admin="Ci-$(openssl rand -hex 16)-Aa1!"; test="Ci-$(openssl rand -hex 16)-Aa1!"
+          echo "::add-mask::$admin"; echo "::add-mask::$test"
+          {
+            echo "Umbraco__CMS__Unattended__UnattendedUserPassword=$admin"
+            echo "ADMIN_PASSWORD=$admin"
+            echo "TEST_USER_PASSWORD=$test"
+          } >> "$GITHUB_ENV"
+          # The demo seed (demo/.../Seed) creates Sam, Wren and Ed from these; e2e logs in with the same values.
+          for name in Sam Wren Ed; do
+            pw="Ci-$(openssl rand -hex 16)-Aa1!"; echo "::add-mask::$pw"
+            { echo "DemoSeed__Passwords__${name}=$pw"; echo "${name^^}_PASSWORD=$pw"; } >> "$GITHUB_ENV"
+          done
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@0f4a354dd5547a28c70b7853dbd95d5b67886e73 # v6.1.0
+        with:
+          dotnet-version: '10.x'
+          # NuGet cache keyed on the lock files. Not used in publish.yml, so a release never restores from a PR-filled cache.
+          cache: true
+          cache-dependency-path: '**/packages.*.lock.json'
+
+      - name: Setup Node
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: tests/e2e/package-lock.json
+
+      - name: Restore demo (floor, locked)
+        if: matrix.leg == 'floor'
+        run: dotnet restore demo/Umbraco.Community.UserActivity.DemoSite --locked-mode
+
+      - name: Restore demo (latest minor, unlocked)
+        if: matrix.leg == 'latest'
+        run: dotnet restore demo/Umbraco.Community.UserActivity.DemoSite --force-evaluate -p:RestoreLockedMode=false
+
+      # Kestrel needs a certificate for HTTPS; the dev certificate is enough (Playwright ignores HTTPS errors).
+      - name: Create the HTTPS dev certificate
+        run: dotnet dev-certs https
+
+      - name: Start the demo site
+        run: |
+          start() {
+            dotnet run --project demo/Umbraco.Community.UserActivity.DemoSite --no-restore --no-launch-profile --urls https://localhost:44331 >> demo.log 2>&1 &
+            for _ in $(seq 1 120); do curl -skf -o /dev/null https://localhost:44331/umbraco && return 0; sleep 2; done
+            return 1
+          }
+          # First boot installs Umbraco unattended. If you add a demo seeder that needs an installed site, boot twice:
+          # call start, pkill -f Umbraco.Community.UserActivity.DemoSite, sleep 5, call start again, then wait for its log line.
+          start
+
+      - name: Playwright
+        working-directory: tests/e2e
+        run: |
+          npm ci --ignore-scripts
+          npx playwright install --with-deps chromium
+          CI=1 npx playwright test
+
+      - name: Upload Playwright report and demo log
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: e2e-${{ matrix.line }}-${{ matrix.leg }}
+          path: |
+            tests/e2e/playwright-report
+            tests/e2e/test-results
+            demo.log
