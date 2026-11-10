@@ -38,7 +38,7 @@ This package shows what your staff did in the backoffice. Treat what it shows li
 - **Watching the watchers.** `LogViews` is on by default. Opening a user's tab, opening the global view for one user or for everyone, opening an event and every export each write a row to Umbraco's audit table, with the viewer and the person viewed. Those rows show on the viewer's own tab. Views are throttled to one row per viewer, person and hour. The throttle is kept per server, so a load-balanced site can write one row per server.
 - **Export is off by default.** Switch on `Export:Enabled` only if you need CSV files. A CSV leaves the backoffice, so it is outside these controls.
 - **Failed sign-ins.** Umbraco stores what someone typed as a username when a sign-in fails, and people sometimes type a password there. Readers see it in the event details. It is never put in an export.
-- **Query strings.** The views keep their filters in the URL, so search text and user keys can end up in proxy, CDN and monitoring logs.
+- **Query strings.** The global view and the Activity tab keep their filters in the URL, so search text and user keys can end up in proxy, CDN and monitoring logs. **Your activity** keeps them in the page only.
 - **Erasure and retention.** The package reads other stores and deletes nothing from them. Umbraco, Automate, Forms, Umbraco.AI and uSync keep their rows under their own rules (see [Sources](#sources)). The "viewed" and "exported" rows this package writes go into Umbraco's audit table, which nothing cleans, so they are kept until you remove them. Include them in your retention policy.
 
 ## IP addresses
@@ -59,7 +59,7 @@ Umbraco stores the IP address in its audit table either way. This setting only c
 - **Global view:** Users section, **Activity** in the menu. Filter by user, source, event type, item type, date range and search. The filters are in the URL, so you can bookmark a view or send the link to another reader.
 - **A user's tab:** open a user in the Users section and choose the **Activity** tab. It has the same filters, locked to that user.
 - **Your own activity:** select your avatar, then **Open your activity** in the "Your activity" box. It shows to readers, and to everyone when `AllowSelfView` is on.
-- Select a row to open its details. Both views show the last 30 days by default.
+- Select a row to open its details. All three show the last 30 days by default.
 
 ### Settings
 

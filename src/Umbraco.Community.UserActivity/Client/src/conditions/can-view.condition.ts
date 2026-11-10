@@ -7,15 +7,14 @@ import { observeMultiple } from '@umbraco-cms/backoffice/observable-api';
 import { userActivityApi } from '../api/user-activity.api.js';
 import { createAccessCache, tabVisible } from './can-view.js';
 
-// One answer per page session, shared by every tab the condition guards.
-let cache: ReturnType<typeof createAccessCache> | undefined;
-let cacheHost: UmbControllerHost | undefined;
+// One answer per page session, shared by every tab and the profile box. The asking host is passed through to the
+// request only, so no detached element is kept alive by the cache (profile-route review PR-5).
+let cache: ReturnType<typeof createAccessCache<UmbControllerHost>> | undefined;
 
 /** The shared, once-per-session access answer (also used by the profile app). */
 export function access(host: UmbControllerHost) {
-  cacheHost = host;
-  cache ??= createAccessCache(() => userActivityApi.filterOptions(cacheHost!));
-  return cache.get();
+  cache ??= createAccessCache<UmbControllerHost>((asker) => userActivityApi.filterOptions(asker!));
+  return cache.get(host);
 }
 
 /** Shows the Activity tab only to people the API would let read it. It hides UI; the API decides (design 7.2). */

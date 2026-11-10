@@ -32,10 +32,14 @@ public class FormsSourceTests : UmbracoIntegrationTest
     private void CreateFormsTable(params (int NodeId, Guid Key, string Name)[] forms)
     {
         using IScope scope = Scopes.CreateScope();
-        scope.Database.Execute("CREATE TABLE UFForms (id INTEGER PRIMARY KEY, \"Key\" TEXT NOT NULL, Name TEXT NOT NULL, NodeId INTEGER NULL)");
+        // Forms' own column types on SQL Server (the release-checks run); SQLite keeps its loose types.
+        var sqlServer = scope.SqlContext.SqlSyntax.ProviderName?.Contains("SqlClient", StringComparison.Ordinal) == true;
+        scope.Database.Execute(sqlServer
+            ? "CREATE TABLE UFForms (id INT IDENTITY(1,1) PRIMARY KEY, [Key] UNIQUEIDENTIFIER NOT NULL, Name NVARCHAR(255) NOT NULL, NodeId INT NULL)"
+            : "CREATE TABLE UFForms (id INTEGER PRIMARY KEY, \"Key\" TEXT NOT NULL, Name TEXT NOT NULL, NodeId INTEGER NULL)");
         foreach ((int nodeId, Guid key, string name) in forms)
         {
-            scope.Database.Execute("INSERT INTO UFForms (\"Key\", Name, NodeId) VALUES (@0, @1, @2)", key, name, nodeId);
+            scope.Database.Execute($"INSERT INTO UFForms ({scope.SqlContext.SqlSyntax.GetQuotedColumnName("Key")}, Name, NodeId) VALUES (@0, @1, @2)", key, name, nodeId);
         }
 
         scope.Complete();

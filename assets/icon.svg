@@ -1,7 +1,11 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128">
-  <!-- Placeholder package icon: replace with the package's own design (keep 128x128, and re-render icon.png). -->
-  <rect width="128" height="128" rx="24" fill="#1b264f"/>
-  <path d="M64 26 98 44v40L64 102 30 84V44z" fill="#ffffff"/>
-  <path d="M64 26 98 44 64 62 30 44z" fill="#f5c1bc"/>
-  <path d="M64 62v40" stroke="#1b264f" stroke-width="4"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-labelledby="t">
+  <title id="t">User Activity</title>
+  <rect width="128" height="128" rx="28" fill="#1b264f"/>
+  <!-- A history clock: a ring that runs back in time, ending in an arrowhead at ten o'clock. -->
+  <path d="M35.2 46.0A34 34 0 1 1 34.0 80.0" fill="none" stroke="#ffffff" stroke-width="9" stroke-linecap="round"/>
+  <path d="M29.4 30.6L33.6 48.5L51.5 44.4" fill="none" stroke="#f5c1bc" stroke-width="9" stroke-linecap="round" stroke-linejoin="round"/>
+  <!-- Hands: hour in white, minute in pink. -->
+  <path d="M64 64V42" stroke="#ffffff" stroke-width="8" stroke-linecap="round"/>
+  <path d="M64 64 80 76" stroke="#f5c1bc" stroke-width="8" stroke-linecap="round"/>
+  <circle cx="64" cy="64" r="6" fill="#ffffff"/>
 </svg>

@@ -34,11 +34,11 @@ export function profileVisible(access: CanViewAccess): boolean {
  * Asks filter-options once per page session and shares the answer with every tab. A definite answer (200 or 403)
  * is kept; anything else, such as a network error while signing in, is not, so the next tab asks again.
  */
-export function createAccessCache(fetcher: () => Promise<OptionsResult>) {
+export function createAccessCache<THost = unknown>(fetcher: (host?: THost) => Promise<OptionsResult>) {
   let pending: Promise<CanViewAccess> | undefined;
   return {
-    get(): Promise<CanViewAccess> {
-      pending ??= fetcher().then(
+    get(host?: THost): Promise<CanViewAccess> {
+      pending ??= fetcher(host).then(
         (result) => {
           const definite = !!result.data || statusOf(result.error) === 403;
           if (!definite) pending = undefined;

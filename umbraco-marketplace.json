@@ -18,11 +18,19 @@
   "Screenshots": [
     {
       "ImageUrl": "https://raw.githubusercontent.com/PascalA94/Umbraco.Community.UserActivity/main/assets/screenshots/screenshot-01-global-view.png",
-      "Caption": "The global Activity view under Users, filtered by source and event type."
+      "Caption": "The global Activity view under Users: content, Forms, Automate, Umbraco.AI and uSync activity in one list."
     },
     {
       "ImageUrl": "https://raw.githubusercontent.com/PascalA94/Umbraco.Community.UserActivity/main/assets/screenshots/screenshot-02-user-tab.png",
-      "Caption": "A user's Activity tab with an event's details open."
+      "Caption": "A user's Activity tab with an Automate run open: who started it, and the service account it ran as."
+    },
+    {
+      "ImageUrl": "https://raw.githubusercontent.com/PascalA94/Umbraco.Community.UserActivity/main/assets/screenshots/screenshot-03-filters.png",
+      "Caption": "Filter by source, event type, item type, date range and search. The filters live in the URL."
+    },
+    {
+      "ImageUrl": "https://raw.githubusercontent.com/PascalA94/Umbraco.Community.UserActivity/main/assets/screenshots/screenshot-04-your-activity.png",
+      "Caption": "Your own activity, opened from your profile."
     }
   ],
   "Tags": [
