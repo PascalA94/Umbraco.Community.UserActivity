@@ -34,7 +34,8 @@ public class ActivityQueryEngineTests
             new UserIdentityResolver(_users, new DictionaryAppCache()),
             new StaticOptionsMonitor<UserActivityOptions>(_options),
             _time,
-            _logger);
+            _logger,
+            new SourceFailures());
 
     private static ActivityQuery Query(int skip = 0, int take = 50, Guid? userKey = null, string[]? sources = null, bool ascending = false, string? search = null)
         => new(userKey, new HashSet<string>(sources ?? []), new HashSet<string>(), new HashSet<string>(),
@@ -346,5 +347,23 @@ public class ActivityQueryEngineTests
     private sealed class BrokenGet(string alias) : FakeSource(alias)
     {
         public override Task<ActivityEvent?> GetAsync(string id, CancellationToken ct) => throw new InvalidOperationException();
+    }
+
+    [Theory]
+    [InlineData(false, null)]
+    [InlineData(true, "203.0.113.7")]
+    public async Task ThirdPartyIp_OnlyWhenShowIpAddressesIsOn(bool show, string? expected)
+    {
+        // M3 review QA-3: the setting is enforced by the engine, not trusted to each source.
+        _options.ShowIpAddresses = show;
+        var withIp = Event("thirdparty", "t:1", T0) with { IpAddress = "203.0.113.7" };
+        var source = new FakeSource("thirdparty", events: [withIp]);
+        ActivityQueryEngine engine = Engine(source);
+
+        ActivityPage page = await engine.QueryAsync(Query(), CancellationToken.None);
+        ActivityDetail? detail = await engine.GetAsync("thirdparty", "t:1", CancellationToken.None);
+
+        Assert.Equal(expected, Assert.Single(page.Items).IpAddress);
+        Assert.Equal(expected, detail!.Event.IpAddress);
     }
 }

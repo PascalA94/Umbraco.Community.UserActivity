@@ -1,3 +1,4 @@
+using NSubstitute;
 using Microsoft.Extensions.DependencyInjection;
 using Umbraco.Community.UserActivity.Sources;
 
@@ -106,4 +107,58 @@ public class ComposerTests
     public sealed class ClaimsAutomateUpper() : FakeSource("claimupper", auditPrefixes: ["Umbraco/Automate/"]);
 
     public sealed class ClaimsFormToo() : FakeSource("formtwo", logEntityTypes: ["form"]);
+
+    [Fact]
+    public void CoreClaims_NeverAskNonClaimantsIfTheyAreAvailable()
+    {
+        // M3 review QA-1: IsAvailable can call into an optional integration; core's claims must only touch claimants.
+        var noClaims = Substitute.For<IUserActivitySource>();
+        noClaims.Alias.Returns("noclaims");
+        noClaims.IsAvailable.Returns(_ => throw new MissingMethodException("x", "y"));
+        var claimant = new FakeSource("claimant", auditPrefixes: ["vendor/x/"]);
+        var collection = new UserActivitySourceCollection(() => [noClaims, claimant]);
+
+        IReadOnlyList<string> prefixes = Umbraco.Community.UserActivity.Sources.Core.CoreClaims.From(() => collection).AuditPrefixes;
+
+        Assert.Equal(["vendor/x/"], prefixes);
+    }
+
+    [Theory]
+    [InlineData("User")]
+    [InlineData("member")]
+    [InlineData("UserGroup")]
+    public void WholeTypeClaim_OnCoreOwnedLogRows_Fails(string entityType)
+    {
+        // M3 review QA-4: a whole-type claim would hide core's own user, member and group rows; partial claims are fine.
+        var greedy = new FakeSource("greedy", logEntityTypes: [entityType]);
+
+        InvalidOperationException ex = Assert.Throws<InvalidOperationException>(() => SourceRegistryValidator.Validate([greedy]));
+
+        Assert.Contains("'greedy'", ex.Message);
+    }
+
+    [Fact]
+    public async Task CoreClaims_AsRegistered_ResolveWithoutACycle()
+    {
+        // The core source needs CoreClaims and CoreClaims reads the collection that holds the core source, so the
+        // registration must read it lazily. Resolving it eagerly deadlocked the backoffice host at boot (M3 fix pass).
+        var builder = new UserActivitySourceCollectionBuilder();
+        builder.Append([typeof(Umbraco.Community.UserActivity.Sources.Core.CoreSource), typeof(FakeClaimant)]);
+        var services = new ServiceCollection();
+        builder.RegisterWith(services);
+        services.AddSingleton(NSubstitute.Substitute.For<Umbraco.Cms.Infrastructure.Scoping.IScopeProvider>());
+        services.AddSingleton<Microsoft.Extensions.Options.IOptionsMonitor<Umbraco.Community.UserActivity.Configuration.UserActivityOptions>>(
+            new StaticOptionsMonitor<Umbraco.Community.UserActivity.Configuration.UserActivityOptions>(new()));
+        Umbraco.Community.UserActivity.Web.UserActivityComposer.AddCoreClaims(services);
+        ServiceProvider provider = services.BuildServiceProvider();
+
+        var resolve = Task.Run(() => provider.GetRequiredService<Umbraco.Community.UserActivity.Sources.Core.CoreClaims>().AuditPrefixes);
+
+        Task finished = await Task.WhenAny(resolve, Task.Delay(TimeSpan.FromSeconds(10)));
+
+        Assert.True(finished == resolve, "resolving CoreClaims and the collection did not finish");
+        Assert.Equal(["vendor/claimant/"], await resolve);
+    }
+
+    public sealed class FakeClaimant() : FakeSource("claimant", auditPrefixes: ["vendor/claimant/"]);
 }

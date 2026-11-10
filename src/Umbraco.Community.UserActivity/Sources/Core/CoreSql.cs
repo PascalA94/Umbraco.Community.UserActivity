@@ -28,7 +28,11 @@ internal static class CoreSql
         IReadOnlyCollection<string> EntityTypes,
         IReadOnlyCollection<string> ExcludedEntityTypes,
         string? Search,
-        bool Ascending);
+        bool Ascending)
+    {
+        /// <summary>Partial claims (design 3.6) to skip as well.</summary>
+        public IReadOnlyCollection<ClaimedLogRows> ExcludedRows { get; init; } = [];
+    }
 
     /// <summary>
     /// Entity types whose <c>umbracoLog.NodeId</c> is an <c>umbracoNode</c> id (lower case). For every other type
@@ -61,7 +65,7 @@ internal static class CoreSql
             sql.Append($"AND LOWER(l.{n.EntityType}) IN (@0)", filter.EntityTypes);
         }
 
-        AppendExclusion(sql, n, filter.ExcludedEntityTypes);
+        AppendExclusion(sql, n, filter.ExcludedEntityTypes, filter.ExcludedRows);
 
         if (filter.Search is { } search)
         {
@@ -79,11 +83,11 @@ internal static class CoreSql
         return sql;
     }
 
-    public static Sql<ISqlContext> LogById(ISqlContext ctx, int id, IReadOnlyCollection<string> excludedEntityTypes)
+    public static Sql<ISqlContext> LogById(ISqlContext ctx, int id, IReadOnlyCollection<string> excludedEntityTypes, IReadOnlyCollection<ClaimedLogRows>? excludedRows = null)
     {
         LogNames n = new(ctx.SqlSyntax);
         Sql<ISqlContext> sql = ctx.Sql(LogColumns(n)).Append(LogFrom(n), NodeBackedEntityTypes).Append($"WHERE l.{n.Id} = @0", id);
-        AppendExclusion(sql, n, excludedEntityTypes);
+        AppendExclusion(sql, n, excludedEntityTypes, excludedRows ?? []);
         return sql;
     }
 
@@ -113,13 +117,24 @@ internal static class CoreSql
         }
     }
 
-    private static void AppendExclusion(Sql<ISqlContext> sql, LogNames n, IReadOnlyCollection<string> excluded)
+    private static void AppendExclusion(Sql<ISqlContext> sql, LogNames n, IReadOnlyCollection<string> excluded, IReadOnlyCollection<ClaimedLogRows> excludedRows)
     {
         if (excluded.Count > 0)
         {
             sql.Append($"AND (l.{n.EntityType} IS NULL OR LOWER(l.{n.EntityType}) NOT IN (@0))", excluded);
         }
+
+        // COALESCE keeps rows with a null entity type or comment: NOT (NULL AND ...) would drop them.
+        foreach (ClaimedLogRows claim in excludedRows)
+        {
+            sql.Append(
+                $"AND NOT (COALESCE(LOWER(l.{n.EntityType}), '') = @0 AND LOWER(l.{n.Header}) = @1 AND COALESCE(l.{n.Comment}, '') LIKE @2 ESCAPE '{LikeEscape}')",
+                claim.EntityType.ToLowerInvariant(), claim.LogHeader.ToLowerInvariant(), PrefixPattern(claim.CommentPrefix));
+        }
     }
+
+    /// <summary><c>text%</c>, escaped.</summary>
+    public static string PrefixPattern(string prefix) => ContainsPattern(prefix)[1..];
 
     private static string LogColumns(LogNames n)
         => $"SELECT l.{n.Id} AS Id, l.{n.UserId} AS UserId, l.{n.NodeId} AS NodeId, l.{n.EntityType} AS EntityType, " +

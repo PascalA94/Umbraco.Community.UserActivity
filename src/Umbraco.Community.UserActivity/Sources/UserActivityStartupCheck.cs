@@ -25,5 +25,6 @@ public sealed class UserActivityStartupCheck : INotificationHandler<UmbracoAppli
         SourceAvailability availability = _services.GetRequiredService<SourceAvailability>();
         _ = availability.All.Count();
         availability.LogUnknownSettings(_logger);
+        _services.GetService<Adapters.AdapterRegistrations>()?.LogProblems(_logger);
     }
 }

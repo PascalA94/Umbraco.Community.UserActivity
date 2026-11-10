@@ -5,7 +5,7 @@ namespace Umbraco.Community.UserActivity.Sources.Adapters;
 /// <summary>A type, method or property an adapter relies on, named by strings so the guard never binds to it.</summary>
 /// <param name="ParameterTypeNames">Method parameters by full type name, or null to accept any overload by name.</param>
 /// <param name="ValueTypeName">A property's full type name, or null to accept any.</param>
-public sealed record MemberSpec(MemberSpecKind Kind, string TypeName, string? MemberName, IReadOnlyList<string>? ParameterTypeNames, string? ValueTypeName)
+internal sealed record MemberSpec(MemberSpecKind Kind, string TypeName, string? MemberName, IReadOnlyList<string>? ParameterTypeNames, string? ValueTypeName)
 {
     public static MemberSpec Type(string typeName) => new(MemberSpecKind.Type, typeName, null, null, null);
 
@@ -18,7 +18,7 @@ public sealed record MemberSpec(MemberSpecKind Kind, string TypeName, string? Me
     public string DisplayName => MemberName is null ? TypeName : $"{TypeName}.{MemberName}";
 }
 
-public enum MemberSpecKind
+internal enum MemberSpecKind
 {
     Type,
     Method,
@@ -26,7 +26,7 @@ public enum MemberSpecKind
 }
 
 /// <param name="MissingMember">The first member not found, by name only (no values, safe to log).</param>
-public sealed record ProbeResult(bool Ok, string? MissingMember)
+internal sealed record ProbeResult(bool Ok, string? MissingMember)
 {
     public static ProbeResult Success { get; } = new(true, null);
 }
@@ -35,7 +35,7 @@ public sealed record ProbeResult(bool Ok, string? MissingMember)
 /// Checks, by reflection, that an installed optional assembly still has every member an adapter calls with the
 /// signature it was compiled against (design 3.2). A failed probe hides the source instead of crashing later.
 /// </summary>
-public static class AdapterProbe
+internal static class AdapterProbe
 {
     private const BindingFlags Members = BindingFlags.Public | BindingFlags.Instance | BindingFlags.Static;
 

@@ -36,7 +36,23 @@ public sealed class SourceAvailability
 
     /// <summary>Enabled and available sources, in registration order.</summary>
     public IReadOnlyList<IUserActivitySource> GetActive()
-        => _sources.Where(s => IsEnabled(s.Alias) && s.IsAvailable).ToList();
+        => _sources.Where(s => IsEnabled(s.Alias) && IsAvailable(s)).ToList();
+
+    /// <summary>
+    /// A source whose <see cref="IUserActivitySource.IsAvailable"/> throws (an integration that changed shape, a
+    /// third-party bug) counts as unavailable, so one source can't fail every Activity request (M3 review QA-1).
+    /// </summary>
+    private static bool IsAvailable(IUserActivitySource source)
+    {
+        try
+        {
+            return source.IsAvailable;
+        }
+        catch (Exception)
+        {
+            return false;
+        }
+    }
 
     /// <summary>The active source with this alias (ordinal: aliases are lower camel case API values), or null.</summary>
     public IUserActivitySource? GetActive(string alias)

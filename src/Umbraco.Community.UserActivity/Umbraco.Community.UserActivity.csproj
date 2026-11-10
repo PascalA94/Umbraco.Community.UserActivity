@@ -53,6 +53,27 @@
     <PackageReference Include="Umbraco.Cms.Api.Management" Version="$(UmbracoRange)" />
   </ItemGroup>
 
+  <!--
+    Runtime adapters (design 3.2): compile-only, at the oldest supported release per line (Directory.Build.props).
+    PackageDownload fetches the nupkg without adding it (or its dependencies) to the restore graph, so the lock files,
+    the nuspec and the vulnerability audit never see it; the Reference compiles against its DLL and Private=false
+    ships nothing. Only code under Sources/Adapters/<Name>/ may name these types (optional-assembly rule).
+  -->
+  <ItemGroup Condition="'$(AICompileVersion)' != ''">
+    <PackageDownload Include="Umbraco.AI.Core" Version="[$(AICompileVersion)]" />
+    <Reference Include="Umbraco.AI.Core">
+      <HintPath>$(NuGetPackageRoot)umbraco.ai.core/$(AICompileVersion)/lib/net10.0/Umbraco.AI.Core.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+  </ItemGroup>
+  <ItemGroup Condition="'$(USyncCompileVersion)' != ''">
+    <PackageDownload Include="uSync.History" Version="[$(USyncCompileVersion)]" />
+    <Reference Include="uSync.History">
+      <HintPath>$(NuGetPackageRoot)usync.history/$(USyncCompileVersion)/lib/net10.0/uSync.History.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+  </ItemGroup>
+
   <ItemGroup>
     <None Include="..\..\README.md" Pack="true" PackagePath="\" />
     <None Include="..\..\assets\icon.png" Pack="true" PackagePath="\" />
@@ -64,6 +85,7 @@
   <ItemGroup>
     <InternalsVisibleTo Include="Umbraco.Community.UserActivity.Tests" />
     <InternalsVisibleTo Include="Umbraco.Community.UserActivity.IntegrationTests" />
+    <InternalsVisibleTo Include="Umbraco.Community.UserActivity.AdapterTests" />
     <!-- NSubstitute proxies for internal types -->
     <InternalsVisibleTo Include="DynamicProxyGenAssembly2" />
   </ItemGroup>

@@ -12,11 +12,18 @@ internal static class SourceRegistryValidator
     /// </summary>
     private static readonly string[] CoreOwnedPrefixes = ["umbraco/user/", "umbraco/user-group/", "umbraco/member/", "community/useractivity/"];
 
+    /// <summary>
+    /// umbracoLog entity types whose rows are core's (users, groups, members). Only a partial claim (header plus
+    /// comment prefix, as Archived Users makes) may take some of them (M3 review QA-4).
+    /// </summary>
+    private static readonly string[] CoreOwnedLogEntityTypes = ["User", "UserGroup", "Member"];
+
     public static void Validate(IEnumerable<IUserActivitySource> sources)
     {
         var byAlias = new Dictionary<string, IUserActivitySource>(StringComparer.OrdinalIgnoreCase);
         var prefixes = new List<(string Prefix, string Alias)>();
         var entityTypes = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        var rowClaims = new List<(ClaimedLogRows Claim, string Alias)>();
 
         foreach (IUserActivitySource source in sources)
         {
@@ -65,6 +72,12 @@ internal static class SourceRegistryValidator
                     throw new InvalidOperationException($"User Activity source '{source.Alias}' claims an empty umbracoLog entity type.");
                 }
 
+                if (CoreOwnedLogEntityTypes.Contains(entityType, StringComparer.OrdinalIgnoreCase))
+                {
+                    throw new InvalidOperationException(
+                        $"User Activity source '{source.Alias}' claims every umbracoLog '{entityType}' row; those belong to the core source. Claim a header and comment prefix instead.");
+                }
+
                 if (entityTypes.TryGetValue(entityType, out var owner))
                 {
                     throw new InvalidOperationException(
@@ -72,6 +85,36 @@ internal static class SourceRegistryValidator
                 }
 
                 entityTypes[entityType] = source.Alias;
+            }
+
+            foreach (ClaimedLogRows claim in claims.ClaimedLogRows)
+            {
+                if (string.IsNullOrWhiteSpace(claim.EntityType) || string.IsNullOrWhiteSpace(claim.LogHeader) || string.IsNullOrWhiteSpace(claim.CommentPrefix))
+                {
+                    throw new InvalidOperationException($"User Activity source '{source.Alias}' claims umbracoLog rows with an empty entity type, header or comment prefix.");
+                }
+
+                (ClaimedLogRows Claim, string Alias) clash = rowClaims.FirstOrDefault(r =>
+                    string.Equals(r.Claim.EntityType, claim.EntityType, StringComparison.OrdinalIgnoreCase)
+                    && string.Equals(r.Claim.LogHeader, claim.LogHeader, StringComparison.OrdinalIgnoreCase)
+                    && Overlaps(r.Claim.CommentPrefix, claim.CommentPrefix));
+                if (clash.Alias is not null)
+                {
+                    throw new InvalidOperationException(
+                        $"User Activity sources '{clash.Alias}' and '{source.Alias}' both claim umbracoLog '{claim.EntityType}' rows with overlapping comment prefixes.");
+                }
+
+                rowClaims.Add((claim, source.Alias));
+            }
+        }
+
+        // A whole-type claim and a partial claim on the same entity type would both own those rows.
+        foreach ((ClaimedLogRows claim, string alias) in rowClaims)
+        {
+            if (entityTypes.TryGetValue(claim.EntityType, out var owner) && owner != alias)
+            {
+                throw new InvalidOperationException(
+                    $"User Activity sources '{owner}' and '{alias}' both claim umbracoLog entity type '{claim.EntityType}' rows.");
             }
         }
     }

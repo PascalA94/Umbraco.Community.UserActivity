@@ -32,19 +32,29 @@ Pascal commits once per milestone (the "Milestone commit" block at the end). The
 
 - [x] Task 19: M2 stop. qa-reviewer: pass with changes; every Important fixed under tests (HANDOVER.md has the list and what was left)
 
-## Paused here (2026-11-10)
+## M3 checkpoints
 
-Milestone: **M2 done** (Tasks 15-19), both lines green (unit 163, integration 89, Vitest 43, Playwright 6 passed on 17 and on 18).
-Review: qa-reviewer pass with changes; all Importants fixed except QA-6 (see HANDOVER.md).
-Next task: **Task 20** (M3: Automate source), **on Opus** in a fresh session (`--model opus`, per the plan's "Time and model per milestone").
-Before M3: run the milestone commit below. CI has still not run on GitHub.
+- [x] Task 20: `feat: Automate source`
+- [x] Task 21: `feat: Forms source`
+- [x] Task 22: `feat: runtime adapter pattern and Umbraco.AI source`
+- [x] Task 23: `feat: uSync source`
+- [x] Task 24: `feat: Archived Users source` (Forms Audit Trail out of 0.1, Pascal 2026-11-07)
+
+- [x] Task 25: M3 stop. Sample source and README "Add your own source"; qa-reviewer: pass with changes; both Importants and two re-graded Minors fixed under tests (HANDOVER.md has the list)
+
+## Paused here (2026-11-10, after M3)
+
+Milestone: **M3 done** (Tasks 20-25), both lines green (unit 243, integration 122, adapter 31 on 17 and on 18; Vitest 43).
+Review: qa-reviewer pass with changes, no Critical; QA-1, QA-3, QA-4 and QA-10 fixed under tests; eight Minors deferred (HANDOVER.md).
+Next task: **Task 26** (M4: README privacy, sources and limits), **on Opus** in a fresh session (`--model opus`, per the plan's "Time and model per milestone").
+Before M4: run the milestone commit below. CI has still not run on GitHub. Two open decisions are due before Task 27 (HANDOVER.md, "Open decisions").
 
 ## Milestone commit
 
 ```bash
 # from the repository root
-git status --short          # check: only src/, tests/e2e/, assets/screenshots/, build/check-xss.sh, COMMITS-TODO.md, HANDOVER.md changed; no secrets, .env, appsettings.*.local, test-results or review docs
+git status --short          # check: only src/, samples/, .github/workflows/build.yml, README.md, COMMITS-TODO.md, HANDOVER.md changed or added; no secrets, .env, appsettings.*.local, bin/obj, test-results or review docs
 git add -A
-git commit -m "feat: global Activity view and per-user Activity tab"
+git commit -m "feat: Automate, Forms, AI, uSync and Archived Users sources"
 git log -1 --oneline
 ```

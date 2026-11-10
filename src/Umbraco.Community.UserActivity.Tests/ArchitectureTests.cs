@@ -38,6 +38,39 @@ public partial class ArchitectureTests
     }
 
     [Fact]
+    public void ArchitectureTests_EveryTypeLoads_WithoutOptionalAssemblies()
+    {
+        // Umbraco's type scan calls GetTypes() on every package assembly at boot and fails start-up if one type can't
+        // load (design 3.2). This process has none of the optional integrations, so any adapter type whose layout
+        // needs one (a struct field, an async state machine awaiting one of their tuples) fails here first.
+        Assembly assembly = typeof(IUserActivitySource).Assembly;
+
+        Exception? failure = Record.Exception(() => assembly.GetTypes());
+
+        Assert.Null(failure is ReflectionTypeLoadException rtle
+            ? string.Join("; ", rtle.LoaderExceptions.Select(e => e?.Message).Distinct())
+            : failure?.Message);
+    }
+
+    [Fact]
+    public void ArchitectureTests_AdapterPlumbingAndBuiltInSourcesAreInternal()
+    {
+        // M3 review QA-10: only the source contract is public API (stable within a major, README "What is versioned").
+        // Guards, probes and the built-in sources can change in a minor, so they must not be public.
+        string[] internalNamespaces =
+        [
+            "Umbraco.Community.UserActivity.Sources.Adapters", "Umbraco.Community.UserActivity.Sources.Automate",
+            "Umbraco.Community.UserActivity.Sources.Forms", "Umbraco.Community.UserActivity.Sources.ArchivedUsers",
+        ];
+        var exposed = typeof(IUserActivitySource).Assembly.GetExportedTypes()
+            .Where(t => internalNamespaces.Any(ns => t.Namespace?.StartsWith(ns, StringComparison.Ordinal) == true))
+            .Select(t => t.FullName)
+            .ToList();
+
+        Assert.Empty(exposed);
+    }
+
+    [Fact]
     public void ArchitectureTests_NoStatics()
     {
         // P2 [Critical]: no static that can hold request state. Statics must be const, or readonly and set once.
