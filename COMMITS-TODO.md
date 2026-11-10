@@ -23,19 +23,28 @@ Pascal commits once per milestone (the "Milestone commit" block at the end). The
 - [x] Task 13: `feat: CSV export, view logging and leak tests`
 - [x] Task 14: M1 stop. qa-reviewer: pass with changes. security-analyst: no sign-off on one Critical (SEC-1), now fixed. Pascal chose the fixes in session.
 
-## Paused here (2026-11-09)
+## M2 checkpoints
 
-Milestone: **M1 done** (Tasks 7, 7a, 8-14), both lines green.
-Reviews: every Critical, Important and security Low finding is fixed under a test that failed first (HANDOVER.md has the list).
-Next task: **Task 15** (M2: client scaffold, generated client, shared components, URL state), **on Sonnet** in a fresh session (`--model sonnet`, per the plan's "Time and model per milestone").
-Before M2: run the milestone commit below. CI has still not run on GitHub.
+- [x] Task 15: `feat: shared activity components and URL filter state`
+- [x] Task 16: `feat: global Activity view under the Users section`
+- [x] Task 17: `feat: per-user Activity tab`
+- [x] Task 18: `feat: event detail sidebar, empty, loading and partial states`
+
+- [x] Task 19: M2 stop. qa-reviewer: pass with changes; every Important fixed under tests (HANDOVER.md has the list and what was left)
+
+## Paused here (2026-11-10)
+
+Milestone: **M2 done** (Tasks 15-19), both lines green (unit 163, integration 89, Vitest 43, Playwright 6 passed on 17 and on 18).
+Review: qa-reviewer pass with changes; all Importants fixed except QA-6 (see HANDOVER.md).
+Next task: **Task 20** (M3: Automate source), **on Opus** in a fresh session (`--model opus`, per the plan's "Time and model per milestone").
+Before M3: run the milestone commit below. CI has still not run on GitHub.
 
 ## Milestone commit
 
 ```bash
 # from the repository root
-git status --short          # check: only src/, docs/spikes.md, COMMITS-TODO.md, HANDOVER.md changed; no secrets, appsettings.*.local, user-secrets, review docs or .superpowers/
+git status --short          # check: only src/, tests/e2e/, assets/screenshots/, build/check-xss.sh, COMMITS-TODO.md, HANDOVER.md changed; no secrets, .env, appsettings.*.local, test-results or review docs
 git add -A
-git commit -m "feat: query layer, source settings, Management API and security controls"
+git commit -m "feat: global Activity view and per-user Activity tab"
 git log -1 --oneline
 ```
