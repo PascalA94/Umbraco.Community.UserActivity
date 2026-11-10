@@ -1,6 +1,6 @@
 # Handover
 
-**State (2026-11-10, after M4): 0.1 is built, reviewed and exercised on both lines. It is not released yet.** CI runs on GitHub: Build and Test and CodeQL were green for the M2 and M3 PRs (#1, #2) and on `main`, and PR #3 (M4) is merging when its checks are green. M0 to M4 (Tasks 1-30) are done, except your steps: release checks, the NuGet ID and Trusted Publishing, and the release itself. M5 (the recorder, 17.1 / 18.1) starts only after 0.1 is released, on Sonnet.
+**State (2026-11-10): 0.1 is released.** `Umbraco.Community.UserActivity` **17.0.0** and **18.0.0** were published to nuget.org from tag `release/0.0` on `28dec72` (Publish run green, approved by you in the `nuget` environment). The GitHub release is https://github.com/PascalA94/Umbraco.Community.UserActivity/releases/tag/release/0.0 and is marked Latest. Before the tag, release checks were green on `28dec72` (SQL Server integration and Playwright e2e on both lines), and so were the PR checks. M0 to M4 (Tasks 1-30) are done. **Next: M5, the recorder (17.1 / 18.1), on Sonnet.**
 
 ## What 0.1 is
 
@@ -111,20 +111,12 @@ The Playwright spec on the demo passed on 17 and 18 (7 passed, 1 skipped each).
 
 ## Your to-do list, in order
 
-1. ~~Milestone commit~~ (done, `8769ba1`), ~~push and PR~~ (done, PR #3; merged once its checks are green).
-2. ~~Release checks~~: the first run failed (Forms test fixture on SQL Server). It is fixed in the release-polish PR; re-run on `main` after that merges.
-3. Before the first tag:
-   - ~~Trusted Publishing policy~~ and ~~`NUGET_USER` secret~~ (done by you);
-   - ~~`nuget` environment with you as required reviewer and a `release/*` tag rule~~ (done);
-   - restrict tag creation.
-   SEC-F8 escalated these because they can't be checked from the repo.
-4. Repo settings (README "Repo settings"): CodeQL is on. Check secret scanning and push protection, private vulnerability reporting, Dependabot alerts, squash-only with branch delete, a ruleset on `main`, and topics `umbraco`, `umbracopackage`, `dotnet`, `audit`, `activity`, `users`, `security`, `gdpr`, `backoffice`. Dismiss CodeQL `cs/web/missing-token-validation` if it appears (README).
-5. Release:
-   - tag **`release/0.0`** on the merge commit of PR #3, which publishes `17.0.0` and `18.0.0`;
-   - run `gh release create` per line and mark 18 as Latest;
-   - post the "own it, announce it" forum thread.
-6. Line up your local `main` after the squash-merge: `git fetch && git reset --hard origin/main`.
-7. Tell the next session that 0.1 is released, then start M5 (Task 31) **on Sonnet**.
+Done: milestone commit, PRs #3 to #5 (merged), release checks, the `nuget` environment, Trusted Publishing, tag `release/0.0`, publish (approved) and the GitHub release.
+
+1. Check the package page once nuget.org has indexed it (10-30 minutes after 21:55 UTC): https://www.nuget.org/packages/Umbraco.Community.UserActivity. The Umbraco Marketplace picks it up from the `umbraco-marketplace` tag, usually within a day.
+2. Post the "own it, announce it" forum thread.
+3. Repo settings (README "Repo settings"), if not done yet: secret scanning and push protection, private vulnerability reporting, Dependabot alerts, squash-only with branch delete, and topics `umbraco`, `umbracopackage`, `dotnet`, `audit`, `activity`, `users`, `security`, `gdpr`, `backoffice`. Rulesets for `main` and release tags exist, and CodeQL is on. Dismiss CodeQL `cs/web/missing-token-validation` if it appears (README).
+4. Start M5 (Task 31) in a fresh session **on Sonnet** (`--model sonnet`) and tell it 0.1 is released. The recorder minor is tag `release/1.0` (17.1.0 / 18.1.0); fixes before then are `release/0.1` (17.0.1 / 18.0.1).
 
 ## Earlier milestones (short)
 
