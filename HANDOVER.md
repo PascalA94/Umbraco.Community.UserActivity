@@ -1,6 +1,6 @@
 # Handover
 
-**State (2026-11-10, after M4): 0.1 is built, reviewed and exercised on both lines. It is not released, and CI has not run on GitHub yet.** M0 to M4 (Tasks 1-30) are done, except your steps: the first GitHub CI run, the NuGet ID and Trusted Publishing, and the release itself. M5 (the recorder, 17.1 / 18.1) starts only after 0.1 is released, on Sonnet.
+**State (2026-11-10, after M4): 0.1 is built, reviewed and exercised on both lines. It is not released yet.** CI runs on GitHub: Build and Test and CodeQL were green for the M2 and M3 PRs (#1, #2) and on `main`, and PR #3 (M4) is merging when its checks are green. M0 to M4 (Tasks 1-30) are done, except your steps: release checks, the NuGet ID and Trusted Publishing, and the release itself. M5 (the recorder, 17.1 / 18.1) starts only after 0.1 is released, on Sonnet.
 
 ## What 0.1 is
 
@@ -46,7 +46,7 @@ Verdicts are saved privately: `reviews/m4-final-qa-review.md` and `reviews/m4-fi
   - SEC-F8: `persist-credentials: false` on the publish build checkout.
 
 **Not fixed (my rulings):**
-- SEC-F8's SDK pin through `global.json`. Changing every build's SDK selection right before the first CI run is riskier than leaving the `10.x` float.
+- SEC-F8's SDK pin through `global.json`. Changing every build's SDK selection right before the release is riskier than leaving the `10.x` float.
 
 **Deferred Minors (your call):**
 - SEC-F3: for self-view users, search still matches fields they can't see. It only covers their own rows; `performingDetails` isn't searched.
@@ -91,7 +91,7 @@ The Playwright spec on the demo passed on 17 and 18 (7 passed, 1 skipped each).
 
 ## Not verified, and why
 
-- **CI has not run on GitHub.** "Done" means green there. Your first run is to-do 1.
+- **Release checks** (SQL Server and the Playwright e2e in CI) haven't run on the M4 branch. PR checks (Build and Test, CodeQL, secrets, osv) run on every PR.
 - **A real Automate run** (Task 30 Step 1). It needs a service user, workspace and automation set up by hand. The S3 row shapes are covered by integration tests.
 - On 17, the IP, export, uSync-off and AI-removal checks weren't repeated. They ran on 18 only, and the code is the same.
 - **SQLite first-boot stall (core, not this package).** On a fresh SQLite database, the demo seeder sometimes hangs creating the second user while core rebuilds its database cache. The stack showed no frame of ours, and a restart fixes it. CI's e2e uses SQL Server. This may be what caused the M1 slow stretch.
@@ -100,22 +100,21 @@ The Playwright spec on the demo passed on 17 and 18 (7 passed, 1 skipped each).
 
 ## Your to-do list, in order
 
-1. Run the **Milestone commit** block at the end of `COMMITS-TODO.md`.
-2. Run the pre-public checks if the repo is still private, make it public (README CI rule 1), then push a branch and open a PR. Expected: `build` (four legs), `client`, `secrets` and `deps` green in about 5 minutes.
-3. Run `gh workflow run release-checks.yml --ref <branch>`. Expected: both lines green (HTTPS, SQL Server, Playwright, axe). If anything fails, start a session to fix it (Task 28 Step 4).
-4. Before the first tag:
+1. ~~Milestone commit~~ (done, `8769ba1`), ~~push and PR~~ (done, PR #3; merged once its checks are green).
+2. Run `gh workflow run release-checks.yml --ref main`. Expected: both lines green (HTTPS, SQL Server, Playwright, axe). If anything fails, start a session to fix it.
+3. Before the first tag:
    - reserve the NuGet ID (`0.0.1-alpha`, push, unlist, 2FA);
    - add a nuget.org Trusted Publishing policy for this repo and `publish.yml`;
    - set the `NUGET_USER` secret;
    - give the `nuget` environment a required reviewer and a `release/*` tag rule;
    - restrict tag creation.
    SEC-F8 escalated these because they can't be checked from the repo.
-5. Repo settings (README "Repo settings"): CodeQL, secret scanning and push protection, private vulnerability reporting, Dependabot alerts, squash-only with branch delete, a ruleset on `main`, and topics `umbraco`, `umbracopackage`, `dotnet`, `audit`, `activity`, `users`, `security`, `gdpr`, `backoffice`. Dismiss CodeQL `cs/web/missing-token-validation` if it appears (README).
-6. Release:
-   - squash-merge;
-   - tag **`release/0.0`** on the merge commit, which publishes `17.0.0` and `18.0.0`;
+4. Repo settings (README "Repo settings"): CodeQL is on. Check secret scanning and push protection, private vulnerability reporting, Dependabot alerts, squash-only with branch delete, a ruleset on `main`, and topics `umbraco`, `umbracopackage`, `dotnet`, `audit`, `activity`, `users`, `security`, `gdpr`, `backoffice`. Dismiss CodeQL `cs/web/missing-token-validation` if it appears (README).
+5. Release:
+   - tag **`release/0.0`** on the merge commit of PR #3, which publishes `17.0.0` and `18.0.0`;
    - run `gh release create` per line and mark 18 as Latest;
    - post the "own it, announce it" forum thread.
+6. Line up your local `main` after the squash-merge: `git fetch && git reset --hard origin/main`.
 7. Tell the next session that 0.1 is released, then start M5 (Task 31) **on Sonnet**.
 
 ## Earlier milestones (short)
