@@ -54,8 +54,8 @@ Pascal commits once per milestone (the "Milestone commit" block at the end). The
 
 Milestone: **M4 done** (Tasks 26-30): 0.1 is built, reviewed and exercised on both lines. Unit 247, integration 122, adapter 32 on 17 and on 18; Vitest 46; Playwright 7 passed per line.
 Reviews: qa-reviewer pass with changes, security-analyst yes with conditions, no Critical. QA-F1, QA-F2, QA-F3 (profile route, Pascal's choice), QA-F4, SEC-F1 and SEC-F5 fixed; the Minors deferred are in HANDOVER.md.
-CI runs on every PR (green for #1 and #2). Next: Pascal's steps in HANDOVER.md "Your to-do list" (release checks, NuGet ID and Trusted Publishing, tag `release/0.0`).
-Next task: **Task 31** (M5, the recorder), **on Sonnet** (`--model sonnet`), and only after 0.1 is released.
+**0.1 released 2026-11-10:** 17.0.0 and 18.0.0 on nuget.org from tag `release/0.0` (`28dec72`), GitHub release marked Latest. M4 follow-ups merged as PRs #3 to #5.
+Next task: **Task 31** (M5, the recorder), **on Sonnet** (`--model sonnet`). 0.1 is released, so M5 can start.
 
 ## Milestone commit
 
