@@ -13,6 +13,13 @@
     <IsPackable>false</IsPackable>
     <AIRuntimeVersion Condition="'$(AIRuntimeVersion)' == ''">$(AICompileVersion)</AIRuntimeVersion>
     <USyncRuntimeVersion Condition="'$(USyncRuntimeVersion)' == ''">$(USyncCompileVersion)</USyncRuntimeVersion>
+    <CspManagerRuntimeVersion Condition="'$(CspManagerRuntimeVersion)' == ''">$(CspManagerCompileVersion)</CspManagerRuntimeVersion>
+    <WorkflowRuntimeVersion Condition="'$(WorkflowRuntimeVersion)' == ''">$(WorkflowCompileVersion)</WorkflowRuntimeVersion>
+    <SkybrudRedirectsRuntimeVersion Condition="'$(SkybrudRedirectsRuntimeVersion)' == ''">$(SkybrudRedirectsCompileVersion)</SkybrudRedirectsRuntimeVersion>
+    <UrlTrackerRuntimeVersion Condition="'$(UrlTrackerRuntimeVersion)' == ''">$(UrlTrackerCompileVersion)</UrlTrackerRuntimeVersion>
+    <!-- Skybrud.Umbraco.Redirects' own dependency, pinned to what its nupkg asks for on each line. -->
+    <SkybrudEssentialsVersion Condition="'$(UmbracoMajor)' == '17'">1.1.67</SkybrudEssentialsVersion>
+    <SkybrudEssentialsVersion Condition="'$(UmbracoMajor)' == '18'">1.1.70</SkybrudEssentialsVersion>
   </PropertyGroup>
 
   <ItemGroup>
@@ -40,6 +47,44 @@
     </Reference>
   </ItemGroup>
 
+  <!--
+    The recorded packages (M5, design 4.1), as DLLs only like Umbraco.AI.Core above: their dependency graphs aren't needed
+    for the notification types the handlers bind to. Floors by default, the newest release on the CI latest leg.
+  -->
+  <ItemGroup Condition="'$(CspManagerRuntimeVersion)' != ''">
+    <PackageDownload Include="Umbraco.Community.CSPManager" Version="[$(CspManagerRuntimeVersion)]" />
+    <Reference Include="Umbraco.Community.CSPManager">
+      <HintPath>$(NuGetPackageRoot)umbraco.community.cspmanager/$(CspManagerRuntimeVersion)/lib/net10.0/Umbraco.Community.CSPManager.dll</HintPath>
+      <Private>true</Private>
+    </Reference>
+  </ItemGroup>
+  <ItemGroup Condition="'$(WorkflowRuntimeVersion)' != ''">
+    <PackageDownload Include="Umbraco.Workflow.Core" Version="[$(WorkflowRuntimeVersion)]" />
+    <Reference Include="Umbraco.Workflow.Core">
+      <HintPath>$(NuGetPackageRoot)umbraco.workflow.core/$(WorkflowRuntimeVersion)/lib/net10.0/Umbraco.Workflow.Core.dll</HintPath>
+      <Private>true</Private>
+    </Reference>
+  </ItemGroup>
+  <ItemGroup Condition="'$(SkybrudRedirectsRuntimeVersion)' != ''">
+    <PackageDownload Include="Skybrud.Umbraco.Redirects" Version="[$(SkybrudRedirectsRuntimeVersion)]" />
+    <Reference Include="Skybrud.Umbraco.Redirects">
+      <HintPath>$(NuGetPackageRoot)skybrud.umbraco.redirects/$(SkybrudRedirectsRuntimeVersion)/lib/net10.0/Skybrud.Umbraco.Redirects.dll</HintPath>
+      <Private>true</Private>
+    </Reference>
+    <PackageDownload Include="Skybrud.Essentials" Version="[$(SkybrudEssentialsVersion)]" />
+    <Reference Include="Skybrud.Essentials">
+      <HintPath>$(NuGetPackageRoot)skybrud.essentials/$(SkybrudEssentialsVersion)/lib/net10.0/Skybrud.Essentials.dll</HintPath>
+      <Private>true</Private>
+    </Reference>
+  </ItemGroup>
+  <ItemGroup Condition="'$(UrlTrackerRuntimeVersion)' != ''">
+    <PackageDownload Include="UrlTracker.Core" Version="[$(UrlTrackerRuntimeVersion)]" />
+    <Reference Include="UrlTracker.Core">
+      <HintPath>$(NuGetPackageRoot)urltracker.core/$(UrlTrackerRuntimeVersion)/lib/net10.0/UrlTracker.Core.dll</HintPath>
+      <Private>true</Private>
+    </Reference>
+  </ItemGroup>
+
   <ItemGroup>
     <ProjectReference Include="..\Umbraco.Community.UserActivity\Umbraco.Community.UserActivity.csproj" />
   </ItemGroup>
@@ -52,6 +97,22 @@
     <AssemblyAttribute Include="System.Reflection.AssemblyMetadataAttribute">
       <_Parameter1>USyncRuntimeVersion</_Parameter1>
       <_Parameter2>$(USyncRuntimeVersion)</_Parameter2>
+    </AssemblyAttribute>
+    <AssemblyAttribute Include="System.Reflection.AssemblyMetadataAttribute">
+      <_Parameter1>CspManagerRuntimeVersion</_Parameter1>
+      <_Parameter2>$(CspManagerRuntimeVersion)</_Parameter2>
+    </AssemblyAttribute>
+    <AssemblyAttribute Include="System.Reflection.AssemblyMetadataAttribute">
+      <_Parameter1>WorkflowRuntimeVersion</_Parameter1>
+      <_Parameter2>$(WorkflowRuntimeVersion)</_Parameter2>
+    </AssemblyAttribute>
+    <AssemblyAttribute Include="System.Reflection.AssemblyMetadataAttribute">
+      <_Parameter1>SkybrudRedirectsRuntimeVersion</_Parameter1>
+      <_Parameter2>$(SkybrudRedirectsRuntimeVersion)</_Parameter2>
+    </AssemblyAttribute>
+    <AssemblyAttribute Include="System.Reflection.AssemblyMetadataAttribute">
+      <_Parameter1>UrlTrackerRuntimeVersion</_Parameter1>
+      <_Parameter2>$(UrlTrackerRuntimeVersion)</_Parameter2>
     </AssemblyAttribute>
     <Using Include="Xunit" />
   </ItemGroup>

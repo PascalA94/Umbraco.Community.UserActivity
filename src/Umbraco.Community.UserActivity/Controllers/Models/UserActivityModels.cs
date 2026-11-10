@@ -120,4 +120,7 @@ public sealed class ActivitySourceOptionResponseModel
 
     /// <summary>Days the underlying store keeps rows, when known; null when its owner keeps them.</summary>
     public int? RetentionHintDays { get; init; }
+
+    /// <summary>True when the source keeps rows until its owner deletes them and no limit is set (the recorder with <c>RetentionDays</c> 0).</summary>
+    public bool RetentionKeptForever { get; init; }
 }

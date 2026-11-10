@@ -56,8 +56,13 @@ public class ScaffoldTests
                 .Select(e => e.Name).ToList();
             Assert.Equal(["Umbraco.Community.UserActivity.dll"], libDlls);
 
-            // Nuspec_HasNoAIDependency (plan Task 22): no optional integration's assembly anywhere in the package.
-            string[] optional = ["Umbraco.AI", "uSync", "Umbraco.Community.ArchivedUsers", "Umbraco.Community.FormsAuditTrail"];
+            // Nuspec_HasNoAIDependency (plan Task 22), extended in M5 to the recorded packages (Nuspec_HasNoCspManager,
+            // Workflow, UrlTracker or SkybrudRedirects dependency): no optional integration's assembly anywhere in the package.
+            string[] optional =
+            [
+                "Umbraco.AI", "uSync", "Umbraco.Community.ArchivedUsers", "Umbraco.Community.FormsAuditTrail",
+                "Umbraco.Community.CSPManager", "Umbraco.Workflow", "UrlTracker", "Skybrud",
+            ];
             Assert.DoesNotContain(zip.Entries, e => optional.Any(o => e.Name.StartsWith(o, StringComparison.OrdinalIgnoreCase)));
         }
         finally

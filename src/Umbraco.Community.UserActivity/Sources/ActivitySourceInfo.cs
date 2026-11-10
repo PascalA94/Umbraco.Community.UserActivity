@@ -10,4 +10,12 @@ public sealed record ActivitySourceInfo(
     IReadOnlyCollection<string> Categories,
     bool CanCount,
     bool CanSearch,
-    TimeSpan? RetentionHint);
+    TimeSpan? RetentionHint)
+{
+    /// <summary>
+    /// The owner of the store keeps rows until someone deletes them and no limit is set (the recorder with
+    /// <c>RetentionDays</c> 0). Separate from a null <see cref="RetentionHint"/>, which says only that the hint is not ours to give.
+    /// An init property, so adding it did not change the constructor.
+    /// </summary>
+    public bool KeptForever { get; init; }
+}

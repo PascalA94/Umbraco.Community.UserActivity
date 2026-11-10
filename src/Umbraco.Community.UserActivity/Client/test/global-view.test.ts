@@ -8,8 +8,8 @@ import type { ActivityFilters } from '../src/state/activity-filter-state.js';
 
 const OPTIONS: ActivityFilterOptionsResponseModel = {
   sources: [
-    { alias: 'core', displayNameKey: 'userActivity_sourceCore', canCount: true, canSearch: true, retentionHintDays: null },
-    { alias: 'ai', displayNameKey: 'userActivity_sourceAi', canCount: true, canSearch: false, retentionHintDays: 14 },
+    { alias: 'core', displayNameKey: 'userActivity_sourceCore', canCount: true, canSearch: true, retentionHintDays: null, retentionKeptForever: false },
+    { alias: 'ai', displayNameKey: 'userActivity_sourceAi', canCount: true, canSearch: false, retentionHintDays: 14, retentionKeptForever: false },
   ],
   categories: ['published', 'deleted'],
   entityTypes: ['document', 'media'],

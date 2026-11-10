@@ -2,6 +2,7 @@ using System.Net;
 using System.Text.Json;
 using Microsoft.Extensions.DependencyInjection;
 using Umbraco.Cms.Core.Models.Membership;
+using Umbraco.Community.UserActivity.Recorder;
 using Umbraco.Community.UserActivity.Sources;
 using Umbraco.Community.UserActivity.Sources.Adapters;
 
@@ -15,7 +16,11 @@ namespace Umbraco.Community.UserActivity.IntegrationTests.Adapters;
 [TestFixture]
 public class NotInstalledTests : ApiTestBase
 {
-    private static readonly string[] OptionalAssemblies = ["Umbraco.AI.Core", "uSync.History", "Umbraco.Automate.Core", "Umbraco.Forms.Core"];
+    private static readonly string[] OptionalAssemblies =
+    [
+        "Umbraco.AI.Core", "uSync.History", "Umbraco.Automate.Core", "Umbraco.Forms.Core",
+        "Umbraco.Community.CSPManager", "Umbraco.Workflow.Core", "Skybrud.Umbraco.Redirects", "UrlTracker.Core",
+    ];
 
     [Test]
     public void NoOptionalAssembly_IsLoaded()
@@ -38,6 +43,28 @@ public class NotInstalledTests : ApiTestBase
         AdapterRegistrations registrations = GetRequiredService<AdapterRegistrations>();
         Assert.That(registrations.Results.Select(r => (r.Alias, r.State)), Is.SupersetOf(new[] { (SourceAlias.AI, AdapterState.NotInstalled), (SourceAlias.USync, AdapterState.NotInstalled) }));
         Assert.That(GetRequiredService<UserActivitySourceCollection>().Select(s => s.Alias), Has.None.AnyOf(SourceAlias.AI, SourceAlias.USync));
+    }
+
+    [Test]
+    public void NotInstalled_BootsAndRegistersNothing_ForTheRecordedPackages()
+    {
+        // M5: none of CSP Manager, Workflow, Skybrud Redirects or UrlTracker is in this host. Start-up completed (the
+        // base class booted it), every recorder guard said "not installed", no handler name was registered, so the
+        // recorder source stays hidden and no handler for a missing notification type exists to fail a save.
+        AdapterRegistrations registrations = GetRequiredService<AdapterRegistrations>();
+        string[] recorded =
+        [
+            RecorderSources.Csp, RecorderSources.Workflow, RecorderSources.SkybrudRedirects,
+#if UMBRACO_17
+            RecorderSources.UrlTracker, // line 18 has no UrlTracker guard: there is no stable 18.x release
+#endif
+        ];
+        Assert.That(
+            registrations.Results.Where(r => recorded.Contains(r.Alias)).Select(r => (r.Alias, r.State)),
+            Is.EquivalentTo(recorded.Select(r => (r, AdapterState.NotInstalled))));
+
+        Assert.That(GetRequiredService<RecorderHandlerRegistry>().Any, Is.False);
+        Assert.That(GetRequiredService<SourceAvailability>().GetActive(SourceAlias.Recorder), Is.Null);
     }
 
     [Test]

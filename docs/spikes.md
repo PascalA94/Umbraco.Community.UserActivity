@@ -14,7 +14,7 @@ M0 ran on 2026-11-07, on CMS 17.8 and 18.3 (SQLite spike sites, package metadata
 | S6 authorisation | **GO** both lines | Server section alias is `users`; the auth handler must not be Scoped |
 | S2 Forms history | **GO** both lines | `umbracoLog` `entityType` `Form`, real user id; names from `UFForms` |
 | S3 Automate rows | **GO** both lines | `initiatedBy` `user:<key>`; `replay:<runId>` is not a user; rows only for data-changing actions; scheduled and webhook not observed |
-| S4 recorder handler user (M5) | **GO** CSP Manager, Workflow, UrlTracker on 17; **NO-GO pending M5** UrlTracker on 18 (beta only) and Skybrud Redirects (no save notification found) | Skybrud add raises no notification and its delete runs inside an ambient scope; Workflow approve raised no `Approved` notification; M5 re-checks |
+| S4 recorder handler user (M5) | **GO** CSP Manager, Workflow, UrlTracker on 17; **NO-GO pending M5** UrlTracker on 18 (beta only) and Skybrud Redirects (no save notification found) | Skybrud add raises no notification and its delete runs inside an ambient scope; Workflow approve raised no `Approved` notification; M5 re-checks (see "M5 handler probe": Skybrud has add/edit/delete notifications from 17.0.5) |
 | S5 core tables and users | **GO** both lines | DTOs internal → `SqlSyntax` constants; UTC; sign-in actor is the *affected* user; `umbracoAudit` has no index; `archivedUsers` becomes a core-table source |
 | S7 line facts and adapter brittleness | **GO** both lines | AI: all members on all 32 releases; uSync: history from 17.3.0; no add-on packages |
 
@@ -337,3 +337,35 @@ Not exercised: a real Automate run (needs a service user, workspace and automati
 Found on the way:
 - **SQLite first-boot stall (core, not this package).** On a fresh SQLite database the demo seeder hung creating its second user while core rebuilt the database cache ("Database cache was serialized using None ... Rebuilding database cache"). The stack showed only the seeder, busy-retrying an `INSERT` into `umbracoUser`, with no frame of this package. A restart (no rebuild) seeded normally. Same family as CI rule 12; the CI e2e runs on SQL Server.
 - **Self-view had no route for users without the Users section** (final review QA-F3). Fixed in 0.1 with the profile route (design 6.2).
+
+## M5 handler probe (2026-11-10)
+
+Re-check of S4 and an S7-style metadata probe for the recorder (M5 Tasks 32-33). Each nupkg was downloaded into its own empty folder outside the repo and its DLL read with `System.Reflection.Metadata`; no package code was loaded or run. Shapes only. The probe lists every stable release (prereleases excluded) on NuGet that day; "admits the floor" means the nuspec's Umbraco range includes 17.8.0 or 18.3.0.
+
+| Package (assembly) | Line | Stable releases probed | Admit the floor | Notifications and members the handlers use | Missing in any release |
+|---|---|---|---|---|---|
+| `Umbraco.Community.CSPManager` | 17 | 17.0.0, 17.0.1, 17.0.2, 17.0.4, 17.0.5 | all | `CspSavedNotification.CspDefinition`; `CspDefinition` `Id` (Guid), `Enabled`, `ReportOnly`, `IsBackOffice` (bool), `Sources` (list) | none; identical metadata in all 8 releases |
+| `Umbraco.Community.CSPManager` | 18 | 18.0.0, 18.0.1, 18.1.0 | all | same | none |
+| `UrlTracker.Core` | 17 | 17.0.0, 17.1.0 | both (`Umbraco.Cms.Infrastructure >= 17.1.0`) | `RedirectCreatedNotification`, `RedirectUpdatedNotification`, `RedirectDeletedNotification` over `RedirectNotificationBase.Redirects` (collection of `IRedirect : IEntity`: `Key`, `SourceValue`, `Permanent`, `Force`, `RetainQuery`, `Advanced`) | none; identical in both |
+| `UrlTracker.Core` | 18 | none (18.0.0-beta.1 and 18.0.0-beta.3 only) | n/a | n/a | **no stable 18.x release** |
+| `Skybrud.Umbraco.Redirects` | 17 | 17.0.0 to 17.0.5 (six) | all (`[17.0.0, 17.999.0)`) | `RedirectAddedNotification`, `RedirectSavedNotification`, `RedirectDeletedNotification`, each with `Redirect` (`IRedirect`: `Key`, `Path`, `Type`, `IsPermanent`) | all three notifications are **absent in 17.0.0-17.0.4** (lookup notifications only); present, identical, from **17.0.5** |
+| `Skybrud.Umbraco.Redirects` | 18 | 18.0.0 | yes (`[18.0.0, 18.999.0)`) | same as 17.0.5 | none |
+| `Umbraco.Workflow.Core` | 17 | 17.0.0-17.0.2, 17.1.0-17.1.1, 17.2.0, 17.3.0-17.3.6, 17.4.0-17.4.2, 17.5.0-17.5.4 (21) | all (ranges start at 17.0.0 up to 17.7.0, all open to 17.999.999) | `WorkflowSettingsSavedNotification`, `WorkflowGroupSavedNotification`, `WorkflowGroupDeletedNotification` (`SavedEntities` / `DeletedEntities` of `IWorkflowGroup : IWorkflowGroupBase` with `Name`, `Unique`), `WorkflowInstanceCreatedNotification` (`CreatedEntity`), `WorkflowInstanceApprovedNotification` and `WorkflowInstanceRejectedNotification` (`UpdatedEntity`), `WorkflowInstanceCompletedNotification` (`WorkflowType`); `IWorkflowInstance.WorkflowType` | none |
+| `Umbraco.Workflow.Core` | 18 | 18.0.0-18.0.3, 18.1.0-18.1.2, 18.2.0-18.2.5 (13) | all (from `[18.0.0, 19.0.0)`) | same notifications, plus `WorkflowConfigSavedNotification` (only on 18) | none; but `IWorkflowInstance`, `ISettings`, `IWorkflowConfig` and the `WorkflowType` enum **moved namespace** between the lines (`Umbraco.Workflow.Core.Interfaces` / `.Models.Enums` on 17, `.ContentApprovals.*` / `.Settings` / `.Common.Interfaces` on 18), so the handlers never name them |
+
+**Floors (compile references, `Directory.Build.props`):** CSP Manager 17.0.0 / 18.0.0; Workflow 17.0.0 / 18.0.0; UrlTracker 17.0.0 / none; Skybrud 17.0.5 / 18.0.0. Skybrud's 17.0.5 is above the boundary at which its notifications arrive (the same treatment as uSync in S7, gate row 2): on 17.0.0-17.0.4 the probe fails and the recorder for Skybrud stays off, with one start-up Warning.
+
+**S4 re-check:**
+- CSP Manager: only `CspSavedNotification` exists, there is no delete notification. Saves only.
+- UrlTracker: GO on 17. **NO-GO on 18**: still beta only, so line 18 compiles no UrlTracker guard (`#if UMBRACO_17`); a site running the beta is simply not recorded.
+- Skybrud Redirects: S4's "no save notification" was wrong. The S4 spike hooked only `RedirectSavedNotification`; the package also has `RedirectAddedNotification` (raised from `AddRedirect` after the insert and scope complete) and `RedirectSavedNotification` (raised from `SaveRedirect`, the edit path). **GO** for add, edit and delete on both lines. Delete runs inside Skybrud's ambient scope (S4), which the writer joins safely.
+- Workflow: `WorkflowInstanceApprovedNotification` exists, derives from `WorkflowInstanceUpdatedNotification` and is raised per step. `WorkflowInstanceCompletedNotification` (also with `WorkflowType` and `CompletedInstance`) exists in every release and is the likely one S4's one-step approval raised. Hooked: settings saved, group saved and deleted, instance created, approved, rejected and completed, and config saved on 18.
+
+**Not verifiable from metadata (recorded, not assumed):**
+- Skybrud add and edit: the backoffice user at handler time was shown only for delete in S4. Add and edit run in the same authenticated backoffice request, so the user is expected; if it is missing the row stores a null user.
+- Workflow: which of Approved, Rejected and Completed fires for each approval shape; whether Group created raises Saved as well as Created (only Saved and Deleted are hooked); `WorkflowInstanceCreatedNotification` on 17 (S4 started no instance there); `WorkflowConfigSavedNotification` on 18. A final approval may store a step row and a completed row, each with its own raw type.
+- Workflow's `IWorkflowInstance` declares only `Type` and `WorkflowType` in the metadata, so the instance rows carry the workflow type and nothing else (no page, no comment).
+
+Result: no package is too brittle. Every member used is identical across all stable releases within a line; the only boundaries are Skybrud's 17.0.5 and the missing stable UrlTracker 18.
+
+GO/NO-GO: **GO** CSP Manager (both lines), Workflow (both lines), Skybrud Redirects (both lines, floor 17.0.5), UrlTracker (17 only).

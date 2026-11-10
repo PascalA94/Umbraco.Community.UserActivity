@@ -1,8 +1,68 @@
 # Handover
 
-**State (2026-11-10): 0.1 is released.** `Umbraco.Community.UserActivity` **17.0.0** and **18.0.0** were published to nuget.org from tag `release/0.0` on `28dec72` (Publish run green, approved by you in the `nuget` environment). The GitHub release is https://github.com/PascalA94/Umbraco.Community.UserActivity/releases/tag/release/0.0 and is marked Latest. Before the tag, release checks were green on `28dec72` (SQL Server integration and Playwright e2e on both lines), and so were the PR checks. M0 to M4 (Tasks 1-30) are done. **Next: M5, the recorder (17.1 / 18.1), on Sonnet.**
+**State (2026-11-10): 0.1 is released; M5 (the recorder, 17.1.0 / 18.1.0) is built and reviewed but not committed or released.** 17.0.0 and 18.0.0 are on nuget.org from tag `release/0.0`. The M5 work is in the working tree: run the "Milestone commit" block at the end of `COMMITS-TODO.md`. **Next: Task 36** (exercise the recorder on the demo sites, then you bump `PackageMinor` to 1, run release checks and tag `release/1.0`).
 
-## What 0.1 is
+## M5: the recorder (built, not released)
+
+- **What it is:** table `communityUserActivityEvent` (created by a package migration plan at start-up), a writer that never throws into another package's save, a `recorder` source, and a daily distributed retention job.
+- **Handlers** (name-based guard, reflection probe, compile-only references, nuspec still Umbraco-only):
+  - CSP Manager (both lines): saves only (the package raises no delete notification).
+  - Skybrud Redirects (both lines, 17.0.5 or later): add, edit, delete. S4's "no save notification" was wrong; it had only hooked Saved.
+  - UrlTracker: **17 only**; it has betas only on 18, so there is no guard on 18.
+  - Workflow (both lines): settings, approval groups, instance created, approved, rejected, completed; config saved on 18.
+- **Stored:** when, user key and name at the time, item name (cut at `?` and `#`), and a short allow-list of flags. Never CSP text, redirect destinations or query strings, request bodies, group emails or IPs. A regex UrlTracker redirect stores the label "Pattern redirect". When a notification carries more than 100 items a "truncated" row records the count.
+- **Retention:** `Recorder:RetentionDays`, default 0 = keep forever, 1-36,500 allowed, negative or higher fails start-up. One start-up line while it is 0. The README's install section and "Set a retention limit" tell owners to set a limit.
+- **Your decision this milestone:** a deleted user's name stays in the recorder table (design 4.1). The README gives the SQL to delete or blank rows by `UserKey` for an erasure request, and the design master and public copy say so.
+- **Source hidden** until a recorded package registers a handler. Turning `Sources:Recorder:Enabled` off also stops recording; existing rows stay until retention removes them.
+- **Client:** the filter options carry `retentionKeptForever`, and the empty state says "Recorded changes: kept forever (no limit set)." The source name key `userActivity_sourceRecorder` was missing and is added.
+- **Writer and ambient scopes:** the writer joins a caller's scope and completes it in a `finally`, so a failed insert never vetoes the caller's save (proved on SQLite with a trigger). Skybrud's delete therefore commits or rolls back together with our row.
+
+### M5 review (Task 35)
+
+Verdicts, summarised (the full text stays in this session's reports; saved privately as `reviews/m5-qa-review.md` and `reviews/m5-security-review.md`).
+- **qa-reviewer (opus): pass with changes.** No Critical, 4 Important. **security-analyst (opus): sign-off yes with conditions.** No Critical or High. Both conditions are met: the erasure decision (M1) and the README rollback wording (L1).
+- **Fixed, each under a test:**
+  - QA-1 / M1: erasure contradiction. Resolved by your choice; the test is renamed `DeletedUser_FallsBackToStoredName`.
+  - QA-2: README "Erasure and retention" now names the recorder table.
+  - QA-3: no upper bound on `RetentionDays` (a huge value would have broken every Activity request). Bound 36,500; `Options_RetentionUpperBound_Is36500Days`, `RecorderHint_BadValue_NeverThrows`.
+  - QA-4: a vacuous guard test replaced by real ones (`ProbeFailed_RegistersNothing_AndLeavesTheRegistryEmpty`, `PassingAssembly_InjectedIntoTheGuard_Registers`).
+  - L3: a regex UrlTracker redirect could store a token-bearing pattern. Now a fixed label.
+  - L5: silent 100-row cap now writes a "truncated" row (UrlTracker, Workflow groups).
+  - L6 / QA-7: the architecture write rule is tighter (Insert only in `RecorderWriter.cs`, DELETE only in `RecorderSql.cs`), with negative cases.
+  - L2: test that a rolled-back caller also rolls back our row (a characterisation test; it was not red first).
+  - QA-6 / L1 / QA-10: README rollback and log wording, stale XML doc.
+- **Deferred Minors (your call):**
+  - QA-5: on SQL Server a deadlock-victim or severity 20+ error in our insert can doom Skybrud's delete transaction; the SQL Server variant of the ambient-failure test is not written.
+  - QA-8: with the recorder switched off and `RetentionDays` 0, nothing reminds the owner that old rows are kept forever (the README says it).
+  - QA-9: no host-level test that Umbraco's real event aggregator calls the factory-registered handlers, or that the distributed job host picks up `RetentionJob`; Workflow has no throwing-writer case.
+  - L4: `check-vulnerable.sh` doesn't see the four `PackageDownload` compile references (exact-pinned; OSV found no advisories on 2026-11-10). Add them to the osv-scanner inputs.
+  - Recorder entity types (`cspPolicy`, `workflowConfig`, `workflowInstance`, `redirect`) have no localised labels in the client yet; they show as their raw names.
+  - From 0.1: the Minors listed below are unchanged.
+
+### M5 test results (2026-11-10, final run)
+
+| Command | 17 | 18 |
+|---|---|---|
+| `bash build/test.sh` | unit 307, integration 136, adapter 72 | unit 303, integration 136, adapter 62 |
+| adapter tests against each line's newest releases (CSP 17.0.5 / 18.1.0, Workflow 17.5.4 / 18.2.5, UrlTracker 17.1.0) | pass | pass |
+| `cd src/Umbraco.Community.UserActivity/Client && npm run build && npm test` | Vitest 54/54 | |
+| `bash build/check-xss.sh` | exit 0 | |
+| `UmbracoMajor=<line> bash build/check-vulnerable.sh` (security pass) | clean | clean |
+
+**Not verified in M5** (all go to Task 36 Step 1): the SQL Server run of the recorder tests; the recorder job under a real scheduler; the backoffice user for Skybrud add and edit (S4 saw it only for delete); which Workflow approved, rejected or completed notification fires per approval shape; whether UrlTracker or Skybrud raise notifications from non-backoffice triggers; no Playwright e2e was run (the only UI change is one hint string, covered by Vitest); `python3 ~/.claude/lib/qa.py plan --run` was not run.
+
+### Your to-do list for the recorder minor
+
+1. Run the Milestone commit block in `COMMITS-TODO.md`, push and open the PR; PR checks must go green.
+2. Start Task 36 in a fresh session (Step 1: exercise on both demo sites).
+3. Set `PackageMinor` to 1 in `Directory.Build.props`, run **Release checks** (SQL Server and e2e), tag `release/1.0`, then `gh release create` per line (18 as Latest). Expected: 17.1.0 and 18.1.0.
+4. The earlier 0.1 to-do items (nuget.org page check, repo settings) are below. The forum post is skipped by your standing choice.
+
+---
+
+## 0.1 (released)
+
+### What 0.1 is
 
 One NuGet package, `Umbraco.Community.UserActivity`, packed as `17.0.0` (Umbraco `[17.8.0, 18.0.0)`) and `18.0.0` (`[18.3.0, 19.0.0)`) from one commit. Its nuspec depends on Umbraco only.
 - **Views:** a global **Activity** view under Users, an **Activity** tab on each user, and (new in M4) a **Your activity** box in the current user's profile that opens your own activity in a sidebar.
@@ -114,9 +174,7 @@ The Playwright spec on the demo passed on 17 and 18 (7 passed, 1 skipped each).
 Done: milestone commit, PRs #3 to #5 (merged), release checks, the `nuget` environment, Trusted Publishing, tag `release/0.0`, publish (approved) and the GitHub release.
 
 1. Check the package page once nuget.org has indexed it (10-30 minutes after 21:55 UTC): https://www.nuget.org/packages/Umbraco.Community.UserActivity. The Umbraco Marketplace picks it up from the `umbraco-marketplace` tag, usually within a day.
-2. Post the "own it, announce it" forum thread.
 3. Repo settings (README "Repo settings"), if not done yet: secret scanning and push protection, private vulnerability reporting, Dependabot alerts, squash-only with branch delete, and topics `umbraco`, `umbracopackage`, `dotnet`, `audit`, `activity`, `users`, `security`, `gdpr`, `backoffice`. Rulesets for `main` and release tags exist, and CodeQL is on. Dismiss CodeQL `cs/web/missing-token-validation` if it appears (README).
-4. Start M5 (Task 31) in a fresh session **on Sonnet** (`--model sonnet`) and tell it 0.1 is released. The recorder minor is tag `release/1.0` (17.1.0 / 18.1.0); fixes before then are `release/0.1` (17.0.1 / 18.0.1).
 
 ## Earlier milestones (short)
 

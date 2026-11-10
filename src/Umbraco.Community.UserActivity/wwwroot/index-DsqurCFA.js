@@ -4,7 +4,7 @@ const c = "UserActivity.Modal.MyActivity", t = "user-activity-root", i = "UserAc
     alias: "UserActivity.Localization.En",
     name: "User Activity English",
     meta: { culture: "en" },
-    js: () => import("./en-DPxXNrFP.js")
+    js: () => import("./en-Dno6wYm7.js")
   },
   {
     // en-GB users get the same copy; the package ships English only in 0.1 (design 6.5).
@@ -12,7 +12,7 @@ const c = "UserActivity.Modal.MyActivity", t = "user-activity-root", i = "UserAc
     alias: "UserActivity.Localization.EnGb",
     name: "User Activity English (UK)",
     meta: { culture: "en-gb" },
-    js: () => import("./en-DPxXNrFP.js")
+    js: () => import("./en-Dno6wYm7.js")
   },
   {
     type: "menuItem",
@@ -33,7 +33,7 @@ const c = "UserActivity.Modal.MyActivity", t = "user-activity-root", i = "UserAc
     type: "workspaceView",
     alias: "UserActivity.WorkspaceView.Root.Activity",
     name: "User Activity Global View",
-    element: () => import("./global-view.element-O5DGN7fP.js"),
+    element: () => import("./global-view.element-c-wdCzyI.js"),
     weight: 100,
     meta: { label: "#userActivity_activity", pathname: "activity", icon: "icon-time" },
     conditions: [{ alias: "Umb.Condition.WorkspaceAlias", match: i }]
@@ -48,7 +48,7 @@ const c = "UserActivity.Modal.MyActivity", t = "user-activity-root", i = "UserAc
     type: "modal",
     alias: c,
     name: "User Activity Your Activity Modal",
-    element: () => import("./my-activity-modal.element-D890d6t0.js")
+    element: () => import("./my-activity-modal.element-BCi2tjEX.js")
   },
   {
     // The route to your own activity for people without the Users section (QA-F3). Shown only when the API would
@@ -58,7 +58,7 @@ const c = "UserActivity.Modal.MyActivity", t = "user-activity-root", i = "UserAc
     name: "User Activity Profile App",
     // Core's profile apps use 100-1000; a low weight puts this box last, after core's own.
     weight: 10,
-    element: () => import("./my-activity-profile-app.element-BFBPHztO.js"),
+    element: () => import("./my-activity-profile-app.element-BHK3ON9Q.js"),
     meta: { label: "#userActivity_myActivity", pathname: "activity" }
   },
   {
@@ -71,7 +71,7 @@ const c = "UserActivity.Modal.MyActivity", t = "user-activity-root", i = "UserAc
     type: "workspaceView",
     alias: "UserActivity.WorkspaceView.User.Activity",
     name: "User Activity Tab",
-    element: () => import("./user-tab.element-CbnnZp31.js"),
+    element: () => import("./user-tab.element-C-30HWY7.js"),
     // Core's Details view is weight 90 (S1), so this tab follows it.
     weight: 50,
     meta: { label: "#userActivity_activity", pathname: "activity", icon: "icon-time" },

@@ -28,13 +28,76 @@ public partial class ArchitectureTests
     public void ArchitectureTests_NoWritesToOtherTables()
     {
         // Read-only on other stores: no SQL writes anywhere (view rows go through IAuditEntryService by design).
-        // M5 may write communityUserActivityEvent only.
-        var hits = ProductionFiles()
-            .SelectMany(f => WriteSql().Matches(f.Code).Select(m => $"{f.Path}: {m.Value}"))
-            .Where(h => !h.Contains("communityUserActivityEvent", StringComparison.Ordinal))
+        // The one exception is the recorder's own table, communityUserActivityEvent (M5), see WriteHits.
+        Assert.Empty(WriteHits(ProductionFiles()));
+    }
+
+    [Fact]
+    public void ArchitectureTests_WriteRule_AllowsOnlyTheRecorderTable_InTheRecorderFolder()
+    {
+        // The rule has to keep catching everything else, so prove it on synthetic files.
+        const string recorderFile = "Recorder/RecorderSql.cs";
+        const string writerFile = "Recorder/RecorderWriter.cs";
+        const string ownTable = "class N { string Table = s.GetQuotedTableName(RecorderTable.Name); } var q = $\"DELETE FROM {n.Table}\";";
+        const string ownInsert = "ActivityEventDto dto = ToDto(e); scope.Database.Insert(dto);";
+
+        Assert.Empty(WriteHits([(recorderFile, ownTable), (writerFile, ownInsert)]));
+
+        // The same code outside the recorder folder, or a write to anything else, is a hit.
+        Assert.NotEmpty(WriteHits([("Sources/Core/CoreSql.cs", ownTable)]));
+        Assert.NotEmpty(WriteHits([("Sources/Core/CoreSql.cs", ownInsert)]));
+
+        // Bypass shapes: a statement that merely mentions the recorder table later, and the recorder's DTO insert
+        // anywhere but the writer. The delete is allowed in RecorderSql.cs only, the insert in RecorderWriter.cs only.
+        const string quoted = "class N { string Table = s.GetQuotedTableName(RecorderTable.Name); } ";
+        Assert.NotEmpty(WriteHits([(recorderFile, quoted + "var q = $\"INSERT INTO umbracoLog (a) SELECT a FROM {n.Table}\";")]));
+        Assert.NotEmpty(WriteHits([(recorderFile, quoted + "var q = $\"DELETE FROM umbracoLog WHERE id IN (SELECT id FROM {n.Table})\";")]));
+        Assert.NotEmpty(WriteHits([("Recorder/RecorderSource.cs", ownInsert)]));
+        Assert.NotEmpty(WriteHits([(writerFile, "UserDto dto = Load(); scope.Database.Insert(dto);")]));
+        Assert.NotEmpty(WriteHits([(writerFile, ownInsert + " scope.Database.Insert(other);")]));
+        Assert.NotEmpty(WriteHits([("Recorder/RecorderSource.cs", ownTable)]));
+        Assert.NotEmpty(WriteHits([(recorderFile, "var q = \"DELETE FROM umbracoLog WHERE 1 = 1\";")]));
+        Assert.NotEmpty(WriteHits([(recorderFile, "var q = $\"UPDATE {x} SET a = 1\";")]));
+        Assert.NotEmpty(WriteHits([(recorderFile, "scope.Database.Insert(someOtherRow);")]));
+        Assert.NotEmpty(WriteHits([(recorderFile, "scope.Database.Delete<UserDto>(1);")]));
+        Assert.NotEmpty(WriteHits([(recorderFile, "var q = \"DROP TABLE communityUserActivityEvent\";")]));
+    }
+
+    private static List<string> WriteHits(IEnumerable<(string Path, string Code)> files)
+        => files
+            .SelectMany(f => WriteSql().Matches(f.Code).Select(m => (f.Path, f.Code, Match: m)))
+            .Where(h => !IsRecorderTableWrite(h.Path, h.Code, h.Match))
+            .Select(h => $"{h.Path}: {h.Match.Value}")
             .ToList();
 
-        Assert.Empty(hits);
+    /// <summary>
+    /// The recorder's two writes, each pinned to its one file: <c>.Insert(dto)</c> of the <c>ActivityEventDto</c> in
+    /// Recorder/RecorderWriter.cs, and a <c>DELETE FROM</c> whose target comes directly after FROM (the recorder table
+    /// token or its literal name) in Recorder/RecorderSql.cs. Matching the target right after FROM, not anywhere in the
+    /// statement, stops <c>DELETE FROM other WHERE x IN (SELECT ... {n.Table})</c> riding on the allowance. Raw
+    /// <c>INSERT INTO</c> and DDL (DROP, ALTER, TRUNCATE) are never allowed: the migration plan creates the table through
+    /// core's builder and rows go in through the DTO.
+    /// </summary>
+    private static bool IsRecorderTableWrite(string path, string code, Match match)
+    {
+        var segments = Segments(path);
+        var after = code[(match.Index + match.Length)..];
+
+        if (match.Value.StartsWith('.'))
+        {
+            return segments.SequenceEqual(["Recorder", "RecorderWriter.cs"])
+                && Regex.IsMatch(match.Value, @"^\.Insert\s*\($")
+                && Regex.IsMatch(after, @"^\s*dto\s*\)")
+                && code.Contains("ActivityEventDto dto", StringComparison.Ordinal);
+        }
+
+        if (!Regex.IsMatch(match.Value, @"^DELETE\s+FROM$", RegexOptions.IgnoreCase) || !segments.SequenceEqual(["Recorder", "RecorderSql.cs"]))
+        {
+            return false;
+        }
+
+        return Regex.IsMatch(after, @"^\s+(\{n\.Table\}|\[?communityUserActivityEvent\]?)(\s|""|$)")
+            && (!after.TrimStart().StartsWith("{n.Table}", StringComparison.Ordinal) || code.Contains("GetQuotedTableName(RecorderTable.Name)", StringComparison.Ordinal));
     }
 
     [Fact]
@@ -61,6 +124,7 @@ public partial class ArchitectureTests
         [
             "Umbraco.Community.UserActivity.Sources.Adapters", "Umbraco.Community.UserActivity.Sources.Automate",
             "Umbraco.Community.UserActivity.Sources.Forms", "Umbraco.Community.UserActivity.Sources.ArchivedUsers",
+            "Umbraco.Community.UserActivity.Recorder.Handlers",
         ];
         var exposed = typeof(IUserActivitySource).Assembly.GetExportedTypes()
             .Where(t => internalNamespaces.Any(ns => t.Namespace?.StartsWith(ns, StringComparison.Ordinal) == true))

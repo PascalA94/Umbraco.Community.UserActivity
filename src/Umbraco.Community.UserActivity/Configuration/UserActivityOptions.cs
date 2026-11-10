@@ -49,6 +49,6 @@ public sealed class ExportOptions
 
 public sealed class RecorderOptions
 {
-    /// <summary>0 = keep forever (the default, as Forms Audit Trail). The README tells site owners to set a limit.</summary>
+    /// <summary>The recorder's retention setting: events older than this many days are deleted daily. 0 keeps rows forever (the default, as Forms Audit Trail; the README tells site owners to set a limit). Maximum 36500.</summary>
     public int RetentionDays { get; set; }
 }
