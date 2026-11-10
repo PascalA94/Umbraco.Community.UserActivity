@@ -40,6 +40,19 @@ bash build/check-vulnerable.sh
 - Stable from the first real public release unless the API is still moving (`.github/REPO-SETUP.md` step 10); after that, no breaking changes within a major.
 - "Done" means green on GitHub. The first CI run is its own step with Pascal.
 
+## Behaviours to preserve
+
+- **Permanent names:** NuGet ID, route `user-activity`, OpenAPI document `user-activity`, source aliases (`core`, `automate`, `forms`, `ai`, `usync`, `archivedUsers`, reserved `formsAuditTrail` and `recorder`), `UserActivity:Sources:<Name>` keys, category strings, client aliases `UserActivity.*`, the view-log event types `community/useractivity/*`.
+- **One package.** The nuspec depends on Umbraco only. Umbraco.AI and uSync are compile-only references (PackageDownload + DLL reference, never a PackageReference).
+- **Optional-assembly rule:** nothing outside an adapter's own folder names an optional package's type; the guard uses names and reflection, registration is a separate `NoInlining` method, and adapters never `await` an integration's type (`AdapterTasks`). `ArchitectureTests_EveryTypeLoads_WithoutOptionalAssemblies` and the `NotInstalled` host guard it.
+- **Read-only on other stores:** no `INSERT`, `UPDATE` or `DELETE` in our SQL (architecture test). View rows go through `IAuditEntryService`.
+- **Authorisation lives in one place:** `UserActivityAuthorizationHandler` (readers = an allowed group **and** the Users section; self-view = own tab only, never details of others, never the global view). The client conditions only hide UI.
+- **No personal data in our logs:** source alias, counts, durations, exception types only.
+- **IP addresses off by default,** enforced in the engine for every source, third-party ones included.
+- **Text only:** no `innerHTML`, `unsafeHTML` or `unsafeStatic` (`build/check-xss.sh`); CSV cells are formula-escaped.
+- **Export off by default** (404 when off), capped, one at a time per user.
+- **One client bundle for both lines.**
+
 ## Keep
 
 - Floors never below 17.8.0 / 18.3.0. The repo is public: no reviews, plans of record or local paths in it.

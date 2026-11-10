@@ -52,6 +52,21 @@ export const manifests: Array<UmbExtensionManifest> = [
     element: () => import('./modal/activity-detail-modal.element.js'),
   },
   {
+    type: 'modal',
+    alias: 'UserActivity.Modal.MyActivity',
+    name: 'User Activity Your Activity Modal',
+    element: () => import('./modal/my-activity-modal.element.js'),
+  },
+  {
+    // The route to your own activity for people without the Users section (QA-F3). Shown only when the API would
+    // answer; the API still decides.
+    type: 'userProfileApp',
+    alias: 'UserActivity.UserProfileApp.Activity',
+    name: 'User Activity Profile App',
+    element: () => import('./profile/my-activity-profile-app.element.js'),
+    meta: { label: '#userActivity_myActivity', pathname: 'activity' },
+  },
+  {
     type: 'condition',
     alias: CAN_VIEW_CONDITION,
     name: 'User Activity Can View Condition',

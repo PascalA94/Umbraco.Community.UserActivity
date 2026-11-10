@@ -38,7 +38,9 @@ internal sealed class AISource : IUserActivitySource, IRuntimeAdapter
         [],
         [Categories.Ran],
         CanCount: true,
-        CanSearch: true,
+        // Umbraco.AI's SearchText matches model ids and error messages, which we never show, so passing a search would
+        // let a reader probe hidden error text (final review SEC-F1). The engine skips this source during a search.
+        CanSearch: false,
         RetentionHint: _aiOptions.CurrentValue.RetentionDays > 0 ? TimeSpan.FromDays(_aiOptions.CurrentValue.RetentionDays) : null);
 
     public string? IntegrationVersion => typeof(IAIAuditLogService).Assembly.GetName().Version?.ToString();
@@ -86,7 +88,6 @@ internal sealed class AISource : IUserActivitySource, IRuntimeAdapter
             UserId = query.User?.Key.ToString("D"),
             FromDate = query.FromUtc.UtcDateTime,
             ToDate = query.ToUtc.UtcDateTime,
-            SearchText = query.Search,
         };
 
         return AdapterTasks.Map(

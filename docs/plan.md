@@ -495,7 +495,7 @@ Run on **both** demo sites over HTTPS, with DevTools open (Console, Network).
 - [ ] **Step 4, negatives:** as Ed, the tab is absent and `curl -sk` to each endpoint gives 403; with `AllowSelfView` on, Ed sees only his own tab and gets 403 on Wren's and on a guessed detail id.
 - [ ] **Step 5:** `grep -rciE "Wren|wren@|<searched text>|127\.0\.0\.1" demo/**/umbraco/Logs` prints only zeros for our log categories.
 - [ ] **Step 6:** Milestone stop (no review beyond Task 29; record results in `docs/spikes.md`). Milestone commit message: `docs: acceptance results for 0.1`.
-- [ ] **Step 7 (Pascal):** run `release-checks.yml`, then push the tag `release/0.1`. Expected: `17.0.0` and `18.0.0` on NuGet from one commit. `gh release create` per line, mark the 18 release Latest. Post an "own it, announce it" forum thread.
+- [ ] **Step 7 (Pascal):** run `release-checks.yml`, then push the tag `release/0.0` (the scheme is `release/<PackageMinor>.<PackagePatch>`, Pascal 2026-11-10). Expected: `17.0.0` and `18.0.0` on NuGet from one commit. `gh release create` per line, mark the 18 release Latest. Post an "own it, announce it" forum thread.
 
 ---
 
@@ -539,7 +539,7 @@ Starts only after 0.1 is released. Before Task 31, re-read S4 in `docs/spikes.md
 ### Task 36: Release the recorder minor
 
 - [ ] **Step 1:** on both demo sites, as Wren, save and delete in each recorded package; as Sam, see the rows under the `recorder` source. With `RetentionDays: 0`, the start-up log names the setting once and the UI hint says "Kept forever (no limit set)". Remove CSP Manager and restart: the site boots, nothing registers.
-- [ ] **Step 2 (Pascal):** run `release-checks.yml`, set `PackageMinor` to 1, tag `release/0.2`. Expected: `17.1.0` and `18.1.0` on NuGet. `gh release create` per line, 18 as Latest.
+- [ ] **Step 2 (Pascal):** run `release-checks.yml`, set `PackageMinor` to 1, tag `release/1.0`. Expected: `17.1.0` and `18.1.0` on NuGet. `gh release create` per line, 18 as Latest.
 - [ ] **Checkpoint (Pascal commits):** `docs: recorder acceptance results`
 
 ---
@@ -588,3 +588,10 @@ Independent plan review by `qa-reviewer` (fresh, opus); the review itself stays 
 These override the task text above.
 - **Forms Audit Trail out of 0.1.** Task 24 builds only the `archivedUsers` source, and as a **core-table source** over `umbracoLog` (`entityType` `User`, header `Custom`, comment prefix `ArchivedUsers:`) following Task 20's shape; its claim covers entity type plus comment prefix. No 01 or 02 compile reference, so `ArchivedUsersCompileVersion` and `FormsAuditTrailCompileVersion` stay empty. The README (Task 26) says Forms Audit Trail history is not shown in 0.1. `formsAuditTrail` and `Sources:FormsAuditTrail` stay reserved names. The `NotInstalled` host test (Task 22) still runs with neither package present.
 - **`umbracoAudit` without an index:** Task 10's `CoreAuditSource` bounds each query by the id range for the date window (PK seek for the first and last id in the window), then filters inside it. Task 11's perf seed covers `umbracoAudit` as well as `umbracoLog`.
+
+## Pascal decides answers before M4 (2026-11-10)
+
+These override the task text above.
+- **Release tag scheme:** `release/<PackageMinor>.<PackagePatch>[-suffix]`, as `publish.yml` and `build/check-release-version.sh` already use. One tag publishes both lines: `release/0.0` gives `17.0.0` and `18.0.0`; the recorder minor is `release/1.0`. The portfolio README's `vX.Y.Z` does not apply to this package.
+- **Self-view route (after the final review, QA-F3):** add the profile route in 0.1 (design 6.2): a `userProfileApp` opening the user's own activity in a sidebar. Task 30 Step 4 checks it as Ed or Wren with `AllowSelfView` on.
+- **Task 30 "use Copilot once":** seed one Umbraco.AI audit row through Umbraco.AI's own audit service on the exercise site instead of calling a real provider. No provider account or key.

@@ -46,10 +46,13 @@ public class AIGuardTests
             Assert.Contains("Umbraco.AI.Core.AuditLog.AIAuditLog." + property, names);
         }
 
-        foreach (var property in new[] { "UserId", "FromDate", "ToDate", "SearchText" })
+        foreach (var property in new[] { "UserId", "FromDate", "ToDate" })
         {
             Assert.Contains("Umbraco.AI.Core.AuditLog.AIAuditLogFilter." + property, names);
         }
+
+        // Search is never passed to Umbraco.AI (SEC-F1), so its absence must not hide the source.
+        Assert.DoesNotContain("Umbraco.AI.Core.AuditLog.AIAuditLogFilter.SearchText", names);
 
         Assert.Contains("Umbraco.AI.Core.AuditLog.AIAuditLogOptions.RetentionDays", names);
     }

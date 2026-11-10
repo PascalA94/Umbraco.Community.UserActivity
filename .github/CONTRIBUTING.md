@@ -46,6 +46,8 @@ dotnet nuget add source "$HOME/local-nuget" --name local   # once
 dotnet add package Umbraco.Community.UserActivity --version 18.0.0-local.<timestamp>
 ```
 
+For an Umbraco 17 site, add `-p:UmbracoMajor=17` to the pack command and use a `17.0.0-local.<timestamp>` version.
+
 ## Before you open a pull request
 
 - Add or update tests for what you changed, and run them.

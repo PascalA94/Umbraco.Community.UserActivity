@@ -25,6 +25,11 @@ export function tabVisible(access: CanViewAccess, workspaceUserKey: string | und
   return false;
 }
 
+/** The profile's "Your activity" box: for anyone the API would show their own activity (readers and self-view users). */
+export function profileVisible(access: CanViewAccess): boolean {
+  return access.kind !== 'none';
+}
+
 /**
  * Asks filter-options once per page session and shares the answer with every tab. A definite answer (200 or 403)
  * is kept; anything else, such as a network error while signing in, is not, so the next tab asks again.

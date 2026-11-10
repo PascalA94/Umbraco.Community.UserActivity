@@ -40,8 +40,8 @@ public sealed class UserActivityComposer : IComposer
         // Runtime adapters (design 3.2): each guard checks by name and reflection, then registers its source only if
         // the integration is installed and still has every member the adapter calls.
         var adapters = new AdapterRegistrations();
-        adapters.Add(AIGuard.TryRegister(builder));
-        adapters.Add(USyncGuard.TryRegister(builder));
+        adapters.Add(AdapterRegistrations.Safely(SourceAlias.AI, () => AIGuard.TryRegister(builder)));
+        adapters.Add(AdapterRegistrations.Safely(SourceAlias.USync, () => USyncGuard.TryRegister(builder)));
         builder.Services.AddSingleton(adapters);
         builder.Services.AddSingleton<SourceFailures>();
         AddCoreClaims(builder.Services);

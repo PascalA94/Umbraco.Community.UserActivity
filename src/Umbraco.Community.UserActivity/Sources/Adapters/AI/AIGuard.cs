@@ -38,7 +38,6 @@ internal static class AIGuard
         MemberSpec.Property(Filter, "UserId", "System.String"),
         MemberSpec.Property(Filter, "FromDate"),
         MemberSpec.Property(Filter, "ToDate"),
-        MemberSpec.Property(Filter, "SearchText", "System.String"),
         MemberSpec.Property(AuditLog + "AIAuditLogOptions", "RetentionDays", "System.Int32"),
     ];
 

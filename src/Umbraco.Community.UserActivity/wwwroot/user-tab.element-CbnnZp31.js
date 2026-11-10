@@ -1,7 +1,7 @@
 import { nothing as a, html as _, state as v, customElement as c } from "@umbraco-cms/backoffice/external/lit";
 import { UmbLitElement as y } from "@umbraco-cms/backoffice/lit-element";
 import { UMB_USER_WORKSPACE_CONTEXT as h } from "@umbraco-cms/backoffice/user";
-import "./activity-view.element-gPDiEXLx.js";
+import "./activity-view.element-Huo8OVpk.js";
 var l = Object.defineProperty, p = Object.getOwnPropertyDescriptor, m = (e, t, o, s) => {
   for (var i = s > 1 ? void 0 : s ? p(t, o) : t, n = e.length - 1, u; n >= 0; n--)
     (u = e[n]) && (i = (s ? u(t, o, i) : u(i)) || i);
