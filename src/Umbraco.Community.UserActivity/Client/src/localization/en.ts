@@ -16,6 +16,7 @@ export default {
     sourceAi: 'Umbraco.AI',
     sourceUSync: 'uSync',
     sourceArchivedUsers: 'Archived Users',
+    sourceRecorder: 'Recorded changes',
 
     columnWhen: 'When',
     columnUser: 'User',
@@ -81,6 +82,7 @@ export default {
     emptyFilters: (text: string) => `No activity found for: ${text}.`,
     emptyFiltersNone: 'No activity in the selected period.',
     retentionHint: (source: string, days: number) => `${source} keeps about ${days} days.`,
+    retentionKeptForever: (source: string) => `${source}: kept forever (no limit set).`,
     partialWarning: (sources: string) => `Some sources didn't respond: ${sources}. Results may be incomplete.`,
     sourceTimedOut: 'timed out',
     sourceFailed: 'failed',

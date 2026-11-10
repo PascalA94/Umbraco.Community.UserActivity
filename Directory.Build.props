@@ -32,7 +32,10 @@
     referenced with PrivateAssets="all" ExcludeAssets="runtime" so they never become NuGet dependencies or ship DLLs.
     Each is the oldest supported release on that line, set from S7 (docs/spikes.md). Empty = no compile reference on that line:
     Archived Users is read from core umbracoLog rows (S5), and Forms Audit Trail is not a source in 0.1 (Pascal, 2026-11-07).
-    M5 adds CspManagerCompileVersion, WorkflowCompileVersion, SkybrudRedirectsCompileVersion, UrlTrackerCompileVersion.
+    The recorder's handlers (M5, design 4.1) follow the same rule, from the M5 handler probe in docs/spikes.md:
+    CspManagerCompileVersion, WorkflowCompileVersion (Umbraco.Workflow.Core), SkybrudRedirectsCompileVersion and
+    UrlTrackerCompileVersion (UrlTracker.Core). UrlTracker has no stable 18.x release, so it is empty on line 18 and
+    its handlers are compiled out there (#if UMBRACO_17).
   -->
   <PropertyGroup Condition="'$(UmbracoMajor)' == '17'">
     <AICompileVersion>17.0.0</AICompileVersion>
@@ -40,12 +43,22 @@
     <USyncCompileVersion>17.3.0</USyncCompileVersion>
     <ArchivedUsersCompileVersion></ArchivedUsersCompileVersion>
     <FormsAuditTrailCompileVersion></FormsAuditTrailCompileVersion>
+    <CspManagerCompileVersion>17.0.0</CspManagerCompileVersion>
+    <WorkflowCompileVersion>17.0.0</WorkflowCompileVersion>
+    <!-- The redirect notifications first ship in Skybrud.Umbraco.Redirects 17.0.5; the guard hides it on 17.0.0-17.0.4. -->
+    <SkybrudRedirectsCompileVersion>17.0.5</SkybrudRedirectsCompileVersion>
+    <UrlTrackerCompileVersion>17.0.0</UrlTrackerCompileVersion>
   </PropertyGroup>
   <PropertyGroup Condition="'$(UmbracoMajor)' == '18'">
     <AICompileVersion>18.0.0</AICompileVersion>
     <USyncCompileVersion>18.0.0</USyncCompileVersion>
     <ArchivedUsersCompileVersion></ArchivedUsersCompileVersion>
     <FormsAuditTrailCompileVersion></FormsAuditTrailCompileVersion>
+    <CspManagerCompileVersion>18.0.0</CspManagerCompileVersion>
+    <WorkflowCompileVersion>18.0.0</WorkflowCompileVersion>
+    <SkybrudRedirectsCompileVersion>18.0.0</SkybrudRedirectsCompileVersion>
+    <!-- No stable UrlTracker 18.x yet (18.0.0-beta.3 only): left out of this line (docs/spikes.md, M5 handler probe). -->
+    <UrlTrackerCompileVersion></UrlTrackerCompileVersion>
   </PropertyGroup>
 
   <Target Name="ValidateUmbracoMajor" BeforeTargets="Restore;Build;CoreCompile" Condition="'$(UmbracoMajor)' != '17' and '$(UmbracoMajor)' != '18'">

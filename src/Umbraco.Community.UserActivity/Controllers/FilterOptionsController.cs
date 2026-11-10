@@ -47,6 +47,7 @@ public sealed class FilterOptionsController : UserActivityControllerBase
                 CanCount = s.Info.CanCount,
                 CanSearch = s.Info.CanSearch,
                 RetentionHintDays = s.Info.RetentionHint is { } hint ? (int)Math.Ceiling(hint.TotalDays) : null,
+                RetentionKeptForever = s.Info.KeptForever,
             }).ToArray(),
             Categories = [.. Categories.All],
             EntityTypes = active.SelectMany(s => s.Info.EntityTypes).Distinct(StringComparer.Ordinal).Order(StringComparer.Ordinal).ToArray(),

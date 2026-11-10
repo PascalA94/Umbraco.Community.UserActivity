@@ -53,8 +53,14 @@ export class ActivityStatesElement extends LitElement {
   }
 
   #hints() {
-    const shown = this.sources.filter((s) => s.retentionHintDays && (this.selectedSources.length === 0 || this.selectedSources.includes(s.alias)));
-    return shown.map((s) => html`<p class="hint">${this.localize('userActivity_retentionHint', this.#sourceName(s.alias), s.retentionHintDays)}</p>`);
+    const shown = this.sources.filter(
+      (s) => (s.retentionHintDays || s.retentionKeptForever) && (this.selectedSources.length === 0 || this.selectedSources.includes(s.alias)),
+    );
+    return shown.map((s) =>
+      s.retentionKeptForever
+        ? html`<p class="hint">${this.localize('userActivity_retentionKeptForever', this.#sourceName(s.alias))}</p>`
+        : html`<p class="hint">${this.localize('userActivity_retentionHint', this.#sourceName(s.alias), s.retentionHintDays)}</p>`,
+    );
   }
 
   #empty() {

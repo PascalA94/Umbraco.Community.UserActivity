@@ -74,6 +74,7 @@ export type ActivitySourceOptionResponseModel = {
     canCount: boolean;
     canSearch: boolean;
     retentionHintDays?: null | number;
+    retentionKeptForever: boolean;
 };
 
 export type EntityTagHeaderValue = {

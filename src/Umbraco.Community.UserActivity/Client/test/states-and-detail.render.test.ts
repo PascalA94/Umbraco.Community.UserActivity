@@ -11,6 +11,8 @@ const localize = (k: string, ...a: unknown[]) =>
   ({
     userActivity_via: `via ${a[0]}`,
     userActivity_retentionHint: `${a[0]} keeps about ${a[1]} days.`,
+    userActivity_retentionKeptForever: `${a[0]}: kept forever (no limit set).`,
+    userActivity_sourceRecorder: 'Recorded changes',
     userActivity_partialWarning: `Some sources didn't respond: ${a[0]}. Results may be incomplete.`,
     userActivity_detailDefaultAdminNote: 'The default administrator is the built-in account.',
     userActivity_sourceAi: 'Umbraco.AI',
@@ -80,8 +82,9 @@ describe('states', () => {
   afterEach(() => (document.body.innerHTML = ''));
 
   const sources = [
-    { alias: 'core', displayNameKey: 'userActivity_sourceCore', canCount: true, canSearch: true, retentionHintDays: null },
-    { alias: 'ai', displayNameKey: 'userActivity_sourceAi', canCount: true, canSearch: false, retentionHintDays: 14 },
+    { alias: 'core', displayNameKey: 'userActivity_sourceCore', canCount: true, canSearch: true, retentionHintDays: null, retentionKeptForever: false },
+    { alias: 'ai', displayNameKey: 'userActivity_sourceAi', canCount: true, canSearch: false, retentionHintDays: 14, retentionKeptForever: false },
+    { alias: 'recorder', displayNameKey: 'userActivity_sourceRecorder', canCount: true, canSearch: true, retentionHintDays: null, retentionKeptForever: true },
   ];
 
   it('Empty_ShowsRetentionHints', async () => {
@@ -90,6 +93,11 @@ describe('states', () => {
     expect(text).toContain('Umbraco.AI keeps about 14 days.');
     expect(text).toContain('No activity found.');
     expect(el.shadowRoot!.querySelector('[data-state="empty"]')).not.toBeNull();
+  });
+
+  it('Empty_RecorderWithNoLimit_SaysKeptForever', async () => {
+    const el = await mount('activity-states', { empty: true, sources, selectedSources: ['recorder'], localize });
+    expect(el.shadowRoot!.textContent).toContain('Recorded changes: kept forever (no limit set).');
   });
 
   it('partial warning shows', async () => {

@@ -11,6 +11,15 @@ using Umbraco.Community.UserActivity.Identity;
 using Umbraco.Community.UserActivity.Controllers;
 using Umbraco.Community.UserActivity.Export;
 using Umbraco.Community.UserActivity.Query;
+using Umbraco.Community.UserActivity.Recorder;
+using Umbraco.Community.UserActivity.Recorder.Handlers;
+using Umbraco.Community.UserActivity.Recorder.Handlers.CspManager;
+using Umbraco.Community.UserActivity.Recorder.Handlers.SkybrudRedirects;
+using Umbraco.Community.UserActivity.Recorder.Handlers.Workflow;
+#if UMBRACO_17
+using Umbraco.Community.UserActivity.Recorder.Handlers.UrlTracker;
+#endif
+using Umbraco.Cms.Infrastructure.BackgroundJobs;
 using Umbraco.Community.UserActivity.Security;
 using Umbraco.Community.UserActivity.Sources;
 using Umbraco.Community.UserActivity.Sources.Adapters;
@@ -35,13 +44,32 @@ public sealed class UserActivityComposer : IComposer
             .ValidateOnStart();
         builder.Services.AddSingleton<IValidateOptions<UserActivityOptions>, UserActivityOptionsValidator>();
 
-        builder.UserActivitySources().Append<CoreSource>().Append<AutomateSource>().Append<FormsSource>().Append<ArchivedUsersSource>();
+        builder.UserActivitySources().Append<CoreSource>().Append<AutomateSource>().Append<FormsSource>().Append<ArchivedUsersSource>().Append<RecorderSource>();
+
+        // The recorder (design 4): the table's migration plan is found by Umbraco's type scan. Each recorded package's
+        // handler guard (M5 Tasks 32-33) calls handlers.Register(...) when its package is installed and passes its probe.
+        var handlers = new RecorderHandlerRegistry();
+        builder.Services.AddSingleton(handlers);
+        builder.Services.TryAddSingleton(TimeProvider.System);
+        builder.Services.AddSingleton<RecorderWriter>();
+        builder.Services.AddSingleton<IRecorderWriter>(sp => sp.GetRequiredService<RecorderWriter>());
+        builder.Services.AddTransient<RecorderHandlerContext>();
+        builder.Services.AddSingleton<IDistributedBackgroundJob, RetentionJob>();
+        builder.AddNotificationHandler<UmbracoApplicationStartingNotification, RecorderStartupNotice>();
 
         // Runtime adapters (design 3.2): each guard checks by name and reflection, then registers its source only if
         // the integration is installed and still has every member the adapter calls.
         var adapters = new AdapterRegistrations();
         adapters.Add(AdapterRegistrations.Safely(SourceAlias.AI, () => AIGuard.TryRegister(builder)));
         adapters.Add(AdapterRegistrations.Safely(SourceAlias.USync, () => USyncGuard.TryRegister(builder)));
+        // Recorded packages (design 4.1): the same guard rule, and a guard that passes also registers its handler name.
+        adapters.Add(AdapterRegistrations.Safely(RecorderSources.Csp, () => CspManagerGuard.TryRegister(builder, handlers)));
+        adapters.Add(AdapterRegistrations.Safely(RecorderSources.Workflow, () => WorkflowGuard.TryRegister(builder, handlers)));
+        adapters.Add(AdapterRegistrations.Safely(RecorderSources.SkybrudRedirects, () => SkybrudRedirectsGuard.TryRegister(builder, handlers)));
+#if UMBRACO_17
+        // UrlTracker has no stable 18.x release (docs/spikes.md, M5 handler probe), so line 18 compiles no guard for it.
+        adapters.Add(AdapterRegistrations.Safely(RecorderSources.UrlTracker, () => UrlTrackerGuard.TryRegister(builder, handlers)));
+#endif
         builder.Services.AddSingleton(adapters);
         builder.Services.AddSingleton<SourceFailures>();
         AddCoreClaims(builder.Services);

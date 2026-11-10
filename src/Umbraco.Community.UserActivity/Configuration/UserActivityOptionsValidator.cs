@@ -14,6 +14,9 @@ public sealed class UserActivityOptionsValidator : IValidateOptions<UserActivity
     /// <summary>Export rows are held in memory and each source is asked for MaxRows + 1, so the cap needs a ceiling.</summary>
     public const int ExportRowsCeiling = 100_000;
 
+    /// <summary>100 years: far past any retention policy, and small enough that <c>TimeSpan.FromDays</c> and <c>AddDays(-n)</c> can never overflow.</summary>
+    public const int RetentionDaysCeiling = 36_500;
+
     private const string Prefix = UserActivityOptions.SectionName + ":";
 
     public ValidateOptionsResult Validate(string? name, UserActivityOptions options)
@@ -50,9 +53,9 @@ public sealed class UserActivityOptionsValidator : IValidateOptions<UserActivity
             failures.Add(Prefix + $"Export:MaxRows must be between 1 and {ExportRowsCeiling}.");
         }
 
-        if (options.Recorder is null || options.Recorder.RetentionDays < 0)
+        if (options.Recorder is null || options.Recorder.RetentionDays < 0 || options.Recorder.RetentionDays > RetentionDaysCeiling)
         {
-            failures.Add(Prefix + "Recorder:RetentionDays must be 0 (keep forever) or a number of days.");
+            failures.Add(Prefix + $"Recorder:RetentionDays must be 0 (keep forever) or between 1 and {RetentionDaysCeiling} days.");
         }
 
         return failures.Count == 0 ? ValidateOptionsResult.Success : ValidateOptionsResult.Fail(failures);

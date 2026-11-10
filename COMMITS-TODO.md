@@ -50,20 +50,45 @@ Pascal commits once per milestone (the "Milestone commit" block at the end). The
 - [x] Task 29: `fix: final review findings` (qa-reviewer pass with changes, security-analyst yes with conditions; no Critical)
 - [x] Task 30 Steps 1-6: `docs: acceptance results for 0.1` (both lines; Step 7, the release, is Pascal's)
 
-## Paused here (2026-11-10, after M4)
+## M5 checkpoints
+
+- [x] Task 31: `feat: recorder table, writer and retention job`
+- [x] Task 32: `feat: recorder handlers for CSP Manager and redirects` (CSP Manager, Skybrud Redirects, UrlTracker on 17)
+- [x] Task 33: `feat: recorder handlers for Workflow`
+- [x] Task 34: `docs: recorder and retention` (README "Recorder", "Set a retention limit", erasure bullet)
+- [x] Task 35: M5 stop. qa-reviewer: pass with changes; security-analyst: yes with conditions, no Critical. Importants and the two security conditions fixed (HANDOVER.md has the list)
+
+## Paused here (2026-11-10, after M5)
+
+Milestone: **M5 done** (Tasks 31-35): the recorder is built and reviewed on both lines. Unit 307 / 303, integration 136, adapter 72 / 62 (17 / 18); Vitest 54; `check-xss.sh` clean.
+Reviews: qa-reviewer pass with changes, security-analyst yes with conditions, no Critical. Fixed under tests, plus README and design. Your choice recorded: the recorder keeps names after a user is deleted, and the README gives the erasure SQL.
+Next task: **Task 36** (release the recorder minor). Step 1 is the demo-site exercise (an agent can do it). Step 2 is yours: bump `PackageMinor` to 1, run release checks, tag `release/1.0`.
+Open for Task 36 Step 1: the Skybrud add and edit user at handler time, which Workflow notifications fire per approval shape, a SQL Server run of the recorder tests, and whether UrlTracker or Skybrud raise notifications outside a backoffice user.
+
+## Earlier: Paused here (2026-11-10, after M4)
 
 Milestone: **M4 done** (Tasks 26-30): 0.1 is built, reviewed and exercised on both lines. Unit 247, integration 122, adapter 32 on 17 and on 18; Vitest 46; Playwright 7 passed per line.
 Reviews: qa-reviewer pass with changes, security-analyst yes with conditions, no Critical. QA-F1, QA-F2, QA-F3 (profile route, Pascal's choice), QA-F4, SEC-F1 and SEC-F5 fixed; the Minors deferred are in HANDOVER.md.
 **0.1 released 2026-11-10:** 17.0.0 and 18.0.0 on nuget.org from tag `release/0.0` (`28dec72`), GitHub release marked Latest. M4 follow-ups merged as PRs #3 to #5.
 Next task: **Task 31** (M5, the recorder), **on Sonnet** (`--model sonnet`). 0.1 is released, so M5 can start.
 
-## Milestone commit
+## Earlier milestone commit (M4, already done)
 
 ```bash
 # from the repository root
 git status --short          # check: only README.md, CLAUDE.md, COMMITS-TODO.md, HANDOVER.md, umbraco-marketplace.json, docs/, assets/screenshots/, .github/, src/ changed or added (two old screenshots deleted); no secrets, .env, appsettings.*.local, bin/obj, spikes/, test-results or review docs
 git add -A
 git commit -m "feat: 0.1 release readiness with privacy docs, profile route and final review fixes"
+git log -1 --oneline
+```
+
+## Milestone commit
+
+```bash
+# from the repository root
+git status --short          # check: only README.md, COMMITS-TODO.md, HANDOVER.md, Directory.Build.props, docs/spikes.md, docs/design.md and src/ changed or added (new Recorder/ folders, regenerated wwwroot chunks); no secrets, .env, appsettings.*.local, bin/obj, spikes/, test-results or review docs
+git add -A
+git commit -m "feat: recorder for CSP Manager, Workflow and redirects"
 git log -1 --oneline
 ```
 

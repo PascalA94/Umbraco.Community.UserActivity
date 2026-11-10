@@ -74,6 +74,35 @@
     </Reference>
   </ItemGroup>
 
+  <ItemGroup Condition="'$(CspManagerCompileVersion)' != ''">
+    <PackageDownload Include="Umbraco.Community.CSPManager" Version="[$(CspManagerCompileVersion)]" />
+    <Reference Include="Umbraco.Community.CSPManager">
+      <HintPath>$(NuGetPackageRoot)umbraco.community.cspmanager/$(CspManagerCompileVersion)/lib/net10.0/Umbraco.Community.CSPManager.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+  </ItemGroup>
+  <ItemGroup Condition="'$(WorkflowCompileVersion)' != ''">
+    <PackageDownload Include="Umbraco.Workflow.Core" Version="[$(WorkflowCompileVersion)]" />
+    <Reference Include="Umbraco.Workflow.Core">
+      <HintPath>$(NuGetPackageRoot)umbraco.workflow.core/$(WorkflowCompileVersion)/lib/net10.0/Umbraco.Workflow.Core.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+  </ItemGroup>
+  <ItemGroup Condition="'$(SkybrudRedirectsCompileVersion)' != ''">
+    <PackageDownload Include="Skybrud.Umbraco.Redirects" Version="[$(SkybrudRedirectsCompileVersion)]" />
+    <Reference Include="Skybrud.Umbraco.Redirects">
+      <HintPath>$(NuGetPackageRoot)skybrud.umbraco.redirects/$(SkybrudRedirectsCompileVersion)/lib/net10.0/Skybrud.Umbraco.Redirects.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+  </ItemGroup>
+  <ItemGroup Condition="'$(UrlTrackerCompileVersion)' != ''">
+    <PackageDownload Include="UrlTracker.Core" Version="[$(UrlTrackerCompileVersion)]" />
+    <Reference Include="UrlTracker.Core">
+      <HintPath>$(NuGetPackageRoot)urltracker.core/$(UrlTrackerCompileVersion)/lib/net10.0/UrlTracker.Core.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+  </ItemGroup>
+
   <ItemGroup>
     <None Include="..\..\README.md" Pack="true" PackagePath="\" />
     <None Include="..\..\assets\icon.png" Pack="true" PackagePath="\" />

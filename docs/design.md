@@ -285,7 +285,7 @@ Why not keyset paging: it scales better, but needs "Newer / Older" buttons inste
 - Created by a `PackageMigrationPlan` (unattended upgrade friendly) [inferred: API name per line, S5]. The migration is idempotent and creates nothing else.
 - **Handlers** use the runtime adapter pattern (3.2): each package's handlers are registered only when its assembly is loaded and its probe passes, so the recorder adds no NuGet dependency.
 - **Handlers** run on the "ed" notification (saved, deleted). They read the user from `IBackOfficeSecurityAccessor.BackOfficeSecurity?.CurrentUser` (S4). No user means `UserKey = null` and the row shows "No backoffice user (background or API)". **A handler never throws into the other package's save:** it catches, logs a Warning with the source and exception type, and moves on.
-- Writes use a fresh scope after the other package's work. If S4 shows a handler runs inside the other package's transaction, we still write in our own scope, so a rolled-back save can leave a recorded row. The README states that residual (rare, and the row is still a true attempt).
+- Writes use a fresh scope after the other package's work. If S4 shows a handler runs inside the other package's transaction, we still write through our own scope call, which joins an ambient scope: our failure is swallowed and the scope completed so it never vetoes the other package's save (Skybrud's delete therefore commits or rolls back together with our row), and a rolled-back save of another package that stored its change before our write can leave a recorded row. The README states that residual (rare, and the row is still a true attempt).
 
 ### 4.2 Retention
 
@@ -447,7 +447,7 @@ This package **watches staff**. Treat it like an HR record.
 - **IP addresses, the trade-off:** in a compromised-account case the sign-in IP is often the most useful fact (a login from an unknown network). Showing it to every admin by default is invasive, so it's off (Pascal, 2026-11-07). The README says: switch `ShowIpAddresses` on for an investigation, admin-only, and off again after. Core still stores the IP in `umbracoAudit` either way; this setting only controls our views and export.
 - **Storage limitation (recorder, next minor):** retention defaults to 0 (keep forever, as Forms Audit Trail). The README tells site owners to set `Recorder:RetentionDays` to their policy, because personal data shouldn't be kept forever (4.2).
 - **Watching the watchers:** with `LogViews` on (default), opening a user's tab and every export writes one `umbracoAudit` row (`eventType` `community/useractivity/viewed` or `.../exported`, the viewer as performer, the subject as affected user). Views are throttled to one row per viewer and subject per hour. These rows show in the Core source like any other.
-- **Erasure:** core and other stores keep their own rows; we don't delete them. For the recorder table, deleting a user (rare in Umbraco, which disables instead) nulls `UserName` for their key. The README says so.
+- **Erasure:** core and other stores keep their own rows; we don't delete them. The recorder table keeps `UserName` (name at the time) after a user is deleted, so the row stays readable (Pascal, 2026-11-10, after the M5 review); the package never updates or deletes rows except by retention. The README says so and gives the owner the SQL to delete or blank rows by `UserKey` for an erasure request.
 
 ### 7.2 Access control and IDOR
 - Policy on every endpoint (5). The client's conditions only hide UI.

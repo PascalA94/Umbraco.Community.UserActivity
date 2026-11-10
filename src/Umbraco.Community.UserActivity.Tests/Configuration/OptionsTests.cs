@@ -49,6 +49,24 @@ public class OptionsTests
         Assert.DoesNotContain("-7", result.FailureMessage);
     }
 
+    [Theory]
+    [InlineData("36500", true)]
+    [InlineData("36501", false)]
+    [InlineData("2147483647", false)]
+    public void Options_RetentionUpperBound_Is36500Days(string value, bool valid)
+    {
+        UserActivityOptions o = Bind(new Dictionary<string, string?> { ["UserActivity:Recorder:RetentionDays"] = value });
+
+        ValidateOptionsResult result = Validate(o);
+
+        Assert.Equal(valid, result.Succeeded);
+        if (!valid)
+        {
+            Assert.Contains("UserActivity:Recorder:RetentionDays", result.FailureMessage);
+            Assert.DoesNotContain(value, result.FailureMessage);
+        }
+    }
+
     [Fact]
     public void Options_RangeOver366_Fails()
     {

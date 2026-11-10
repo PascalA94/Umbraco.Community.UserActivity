@@ -24,6 +24,8 @@ A community package, not made or supported by Umbraco HQ. Requires Umbraco 17 (1
 dotnet add package Umbraco.Community.UserActivity
 ```
 
+If you use any of the recorded packages (CSP Manager, Workflow, Skybrud Redirects, UrlTracker), [set a retention limit](#set-a-retention-limit) before you go live.
+
 ## Before you install
 
 This package shows what your staff did in the backoffice. Treat what it shows like an HR record. This section is a starting point for your own checks, not legal advice.
@@ -40,6 +42,7 @@ This package shows what your staff did in the backoffice. Treat what it shows li
 - **Failed sign-ins.** Umbraco stores what someone typed as a username when a sign-in fails, and people sometimes type a password there. Readers see it in the event details. It is never put in an export.
 - **Query strings.** The global view and the Activity tab keep their filters in the URL, so search text and user keys can end up in proxy, CDN and monitoring logs. **Your activity** keeps them in the page only.
 - **Erasure and retention.** The package reads other stores and deletes nothing from them. Umbraco, Automate, Forms, Umbraco.AI and uSync keep their rows under their own rules (see [Sources](#sources)). The "viewed" and "exported" rows this package writes go into Umbraco's audit table, which nothing cleans, so they are kept until you remove them. Include them in your retention policy.
+  - **The recorder (17.1 / 18.1 and later) is the exception: it keeps a table of its own**, `communityUserActivityEvent`, with the user's key and name at the time of each change, plus item names. It keeps rows forever until you set `Recorder:RetentionDays` (see [Set a retention limit](#set-a-retention-limit)). Deleting a user does not clear their name from it, so a deleted person stays readable. For an erasure request, delete or blank their rows yourself, for example `DELETE FROM communityUserActivityEvent WHERE UserKey = '<the user key>'` or `UPDATE communityUserActivityEvent SET UserName = NULL WHERE UserKey = '<the user key>'`.
 
 ## IP addresses
 
@@ -76,13 +79,15 @@ Every setting is optional. These are the defaults:
   "ShowIpAddresses": false,
   "LogViews": true,
   "Export": { "Enabled": false, "MaxRows": 10000 },
+  "Recorder": { "RetentionDays": 0 },
   "Sources": {
     "Core": { "Enabled": true },
     "Automate": { "Enabled": true },
     "Forms": { "Enabled": true },
     "AI": { "Enabled": true },
     "uSync": { "Enabled": true },
-    "ArchivedUsers": { "Enabled": true }
+    "ArchivedUsers": { "Enabled": true },
+    "Recorder": { "Enabled": true }
   }
 }
 ```
@@ -102,6 +107,7 @@ A source appears only when its package is installed. There are no licence checks
 | Umbraco Forms | `Forms` | Form create, save and delete, with the real user | Kept by Umbraco (`umbracoLog`) |
 | Umbraco.AI | `AI` | Umbraco.AI's audit log: which feature ran, for whom, and whether it worked. Never prompts, responses or error text | Umbraco.AI's own `RetentionDays`, 14 days by default. The view says how long it keeps |
 | uSync | `uSync` | Imports and exports from uSync's history (uSync 17.3.0 or later on Umbraco 17) | Files in uSync's temp folder, kept until that folder is cleared (which can happen on a deploy) or the history is cleared from uSync's dashboard |
+| Recorder | `Recorder` | Changes in CSP Manager, Workflow, Skybrud Redirects and UrlTracker, which keep no history of their own (see [Recorder](#recorder)) | Kept forever until you set `Recorder:RetentionDays` |
 | Archived Users | `ArchivedUsers` | Archive, unarchive, auto-archive, auto-disable, export and purge actions from Umbraco.Community.ArchivedUsers | Kept by Umbraco (`umbracoLog`) |
 
 The item type filter covers content, media, members, document, media and member types, data types, templates, users and user groups. Other Umbraco rows (languages, dictionary items, relation types) show when no item type is chosen.
@@ -117,6 +123,27 @@ The views show what each store recorded, and Umbraco leaves some gaps:
 - bulk media deletes are logged against the media root;
 - work done outside a backoffice request can show as "System".
 
+### Recorder
+
+CSP Manager, Workflow, Skybrud Redirects and UrlTracker keep no history of who changed what. The recorder fills that gap: it listens to each package's own save and delete notifications and writes one row per change to its own table, `communityUserActivityEvent`. The table is created when the site starts. The recorder source shows only when at least one of those packages is installed, and it is switched off with `UserActivity:Sources:Recorder:Enabled: false` (that also stops recording, but rows already recorded stay until a retention limit removes them).
+
+- **Going forward only.** There is no backfill. Rows start from the day you update to 17.1 / 18.1 (the first versions with the recorder).
+- **What a row holds:** when, the user, the kind of change and the item's name. A short list of safe flags is kept for some packages (for example whether a CSP is report-only). It never holds a CSP policy's text, a redirect's destination or query string, or a request body.
+- **Which changes:** CSP Manager saves; Skybrud Redirects add, edit and delete; UrlTracker create, update and delete (Umbraco 17 only until UrlTracker ships a stable release for 18); Workflow settings, approval groups and workflow instances.
+- **No user.** A change made with no backoffice user (a background job or an API call) is recorded with no user and shows as such.
+- **A rolled-back save can still leave a row.** For most packages the recorder writes after the change is stored, so if that package rolls its save back afterwards, a row can remain. It is still a true record that the change was attempted. Skybrud Redirects' delete is the exception: the row is written inside Skybrud's own transaction, so the row and the delete commit or roll back together.
+- **Never breaks the other package.** If the recorder can't write, it logs a warning (source and error type only) and the save carries on. Umbraco's own database layer also logs a failed write, and at Debug level that log can include the values being written, so keep Debug logging off on a live site.
+
+### Set a retention limit
+
+`UserActivity:Recorder:RetentionDays` defaults to `0`, which keeps recorder rows **forever**. That default is deliberate: the package never deletes records you haven't chosen to delete (Forms Audit Trail works the same way). But UK GDPR's storage limitation principle says personal data shouldn't be kept longer than you need it, so **set a number of days that matches your retention policy**. 365 is a common choice for security logs.
+
+```json
+"UserActivity": { "Recorder": { "RetentionDays": 365 } }
+```
+
+A daily background job deletes older rows in batches of 1,000 and logs one line with the count. A negative number stops the site at start-up. While the limit is `0`, the site logs one line at start-up naming the setting, and the source's hint says "Kept forever (no limit set)".
+
 ## Limits
 
 - **User matching.** Each source stores users its own way: Umbraco's log by user id, its audit table and Automate by user key, Umbraco.AI by key as text, and uSync by username. A user's tab shows events where they are the user or the "via" account. uSync rows match on the username, so a renamed user's older uSync rows show with the old name and aren't on their tab. If someone new is later given a username that someone else used before, the earlier person's uSync rows show on the new person's tab. Bear this in mind before you act on uSync rows. A deleted user's rows show as "Unknown user" with the name the source kept, if any.
@@ -127,7 +154,7 @@ The views show what each store recorded, and Umbraco leaves some gaps:
 - **Partial results.** A source that fails or takes longer than `SourceTimeoutSeconds` is skipped, and the view names it in a warning. The other sources still show. On SQLite the timeout can't stop a query that is already running.
 - **Search** needs 3 to 100 characters. A source that can't search is left out while a search is on, and so is Umbraco.AI (its search would look at error text this package never shows). Umbraco.AI and uSync are also left out while an item type filter is on.
 - **Exports** are capped at `Export:MaxRows` rows (10,000), one at a time per user. A failed source stops the export rather than giving you an incomplete file.
-- **No recorder yet.** Packages that keep no history of their own (CSP Manager, Workflow, Skybrud Redirects, UrlTracker) get a recorder in 17.1 / 18.1.
+- **Recorder history starts when you update.** The recorder keeps nothing from before it was installed, and nothing for a package that is not installed. See [Recorder](#recorder).
 
 ## Add your own source
 
