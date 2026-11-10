@@ -14,9 +14,11 @@ if grep -rnE 'unsafeHTML|unsafeSVG|unsafeStatic|innerHTML|outerHTML|insertAdjace
   status=1
 fi
 
-# Whole-file match, so a key on the next line or a literal joined with + is caught too.
-if find "$SRC" -type f \( -name '*.ts' -o -name '*.js' \) -print0 \
-  | xargs -0 perl -0777 -ne 'while (/\.term\(\s*(?:[^\x27"\s]|([\x27"])[^\x27"]*\1\s*\+)/g) { print "$ARGV: $&\n"; $f = 1 } END { exit($f ? 0 : 1) }'; then
+# Whole-file match, so a key on the next line or a literal joined with + is caught too. A `.term` that is not called
+# at all (a cast, an alias or a bound reference) is caught as well. components/localize.ts is the one audited file
+# that may pass a dynamic key: it only resolves keys starting with userActivity_.
+if find "$SRC" -type f \( -name '*.ts' -o -name '*.js' \) ! -path '*/components/localize.ts' -print0 \
+  | xargs -0 perl -0777 -ne 'while (/\.term(?!\()|\.term\(\s*(?:[^\x27"\s]|([\x27"])[^\x27"]*\1\s*\+)/g) { print "$ARGV: $&\n"; $f = 1 } END { exit($f ? 0 : 1) }'; then
   echo "check-xss: localize.term must take a string literal key" >&2
   status=1
 fi

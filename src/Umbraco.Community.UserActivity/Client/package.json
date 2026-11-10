@@ -6,9 +6,11 @@
   "scripts": {
     "build": "tsc --noEmit && vite build",
     "dev": "vite build --watch",
-    "test": "vitest run"
+    "test": "vitest run",
+    "generate:api": "openapi-ts"
   },
   "devDependencies": {
+    "@hey-api/openapi-ts": "0.99.0",
     "@umbraco-cms/backoffice": "^17.8.0",
     "happy-dom": "^21.0.4",
     "typescript": "^5.9.0",

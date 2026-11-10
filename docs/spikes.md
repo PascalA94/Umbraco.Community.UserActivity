@@ -277,3 +277,33 @@ Run 2026-11-07, metadata only: each nupkg was downloaded into its own empty fold
 Result: no brittleness found in any released version of either integration on either line.
 
 GO/NO-GO: **GO** on both lines (gate rows 1 and 2).
+
+## M1 results (Task 10 and Task 11)
+
+Run 2026-11-09 on the 18.3 line, local Docker SQL Server 2022 (`linux/amd64`) and SQLite.
+
+**Core audit event types (Task 10):** read from the `Umbraco.Core`, `Umbraco.Infrastructure` and `Umbraco.Cms.Api.Management` assemblies at 17.8.0 and 18.3.0 (identical): `umbraco/user/sign-in/login`, `.../logout`, `.../failed`, `umbraco/user/save`, `umbraco/user/delete`, `umbraco/user/password/reset`, `umbraco/user/password/change` (the self-service change, open since S5), `umbraco/user/password/forgot/request`, `umbraco/user/password/forgot/change`, `umbraco/user-group/save`, `umbraco/user-group/permissions-change`, `umbraco/member/save`, `umbraco/member/delete`, `umbraco/member/exported`, `umbraco/member/roles/assigned`, `umbraco/member/roles/removed`.
+
+**SQL Server (closes the S5 SQL Server item):** the whole integration suite (core `umbracoLog` and `umbracoAudit` reads: UTC windows, `LIKE ... ESCAPE` with `%`, `_`, `[` and `\`, the claims, the id-range bound) passes on SQL Server as on SQLite.
+
+**Performance (Task 11 Step 4):** 1,000,000 `umbracoLog` rows and 1,000,000 `umbracoAudit` rows over 90 days, 20 users, ids growing with time. The `core` source, 30-day window, warm plan cache:
+
+| Query | Time | Rows returned | Total |
+|---|---|---|---|
+| One user, page 1 (top 50) | 68 ms | 50 | 33,332 |
+| One user, page 100 (top 5,000) | 88 ms | 5,000 | 33,332 |
+| All users, page 1 | 96 ms | 50 | 666,668 |
+| All users, page 100 | 127 ms | 5,000 | 666,668 |
+
+| All users, 366-day search matching nothing (full `LIKE` scan, no count), page 1 | 167 ms | 0 | not counted |
+| Same, page 100 | 169 ms | 0 | not counted |
+
+The last two rows were added after the M1 review: searches are no longer counted (design 3.7, "count with indexed filters only"), and core's database work is bounded by `SourceTimeoutSeconds` as a command timeout.
+
+**Cross-site requests (M1 review):** on both lines a request carrying only the access-token cookie gets 401 (the Management API needs the bearer header, which a cross-site link can't add), and the `__Host-umbAccessToken` cookie is `SameSite=Strict`. `CrossSiteRequestTests` keeps checking it.
+
+**Core's `performingDetails`:** a real sign-in row stores the default admin as `User "<name>"` in `performingDetails` (seen in the M1 integration run), which is why event details go to readers only.
+
+Result: well under the 2 s gate. The `umbracoLog` user filter inside `IX_umbracoLog_datestamp` and the `umbracoAudit` id-range bound (Pascal, 2026-11-07) both hold; no change to `MaxDepth` or paging.
+
+GO/NO-GO: **GO** (no Pascal decision needed).

@@ -1,23 +1,73 @@
-import type { ManifestDashboard } from '@umbraco-cms/backoffice/dashboard';
+// Aliases are permanent once released: every one is prefixed "UserActivity." (design 5).
+// Workspace and menu aliases are the S1 spike's, identical on 17.8 and 18.3 (docs/spikes.md).
+export const ROOT_ENTITY_TYPE = 'user-activity-root';
+export const ROOT_WORKSPACE_ALIAS = 'UserActivity.Workspace.Root';
+export const USER_WORKSPACE_ALIAS = 'Umb.Workspace.User';
+export const CAN_VIEW_CONDITION = 'UserActivity.Condition.CanView';
 
-// Placeholder dashboard so the bundle has something to load. Replace or remove it; keep every alias prefixed
-// "UserActivity." because aliases are permanent once released.
-const dashboard: ManifestDashboard = {
-  type: 'dashboard',
-  alias: 'UserActivity.Dashboard',
-  name: 'User Activity Dashboard',
-  element: () => import('./dashboard.element.js'),
-  weight: -10,
-  meta: {
-    label: 'User Activity',
-    pathname: 'user-activity',
+export const manifests: Array<UmbExtensionManifest> = [
+  {
+    type: 'localization',
+    alias: 'UserActivity.Localization.En',
+    name: 'User Activity English',
+    meta: { culture: 'en' },
+    js: () => import('./localization/en.js'),
   },
-  conditions: [
-    {
-      alias: 'Umb.Condition.SectionAlias',
-      match: 'Umb.Section.Content',
-    },
-  ],
-};
-
-export const manifests = [dashboard];
+  {
+    // en-GB users get the same copy; the package ships English only in 0.1 (design 6.5).
+    type: 'localization',
+    alias: 'UserActivity.Localization.EnGb',
+    name: 'User Activity English (UK)',
+    meta: { culture: 'en-gb' },
+    js: () => import('./localization/en.js'),
+  },
+  {
+    type: 'menuItem',
+    alias: 'UserActivity.MenuItem.Activity',
+    name: 'User Activity Menu Item',
+    // After core's User Groups (100): weight 50.
+    weight: 50,
+    meta: { label: '#userActivity_activity', icon: 'icon-time', entityType: ROOT_ENTITY_TYPE, menus: ['Umb.Menu.UserManagement'] },
+  },
+  {
+    type: 'workspace',
+    kind: 'default',
+    alias: ROOT_WORKSPACE_ALIAS,
+    name: 'User Activity Root Workspace',
+    meta: { entityType: ROOT_ENTITY_TYPE, headline: '#userActivity_activity' },
+  },
+  {
+    type: 'workspaceView',
+    alias: 'UserActivity.WorkspaceView.Root.Activity',
+    name: 'User Activity Global View',
+    element: () => import('./views/global/global-view.element.js'),
+    weight: 100,
+    meta: { label: '#userActivity_activity', pathname: 'activity', icon: 'icon-time' },
+    conditions: [{ alias: 'Umb.Condition.WorkspaceAlias', match: ROOT_WORKSPACE_ALIAS }],
+  },
+  {
+    type: 'modal',
+    alias: 'UserActivity.Modal.Detail',
+    name: 'User Activity Detail Modal',
+    element: () => import('./modal/activity-detail-modal.element.js'),
+  },
+  {
+    type: 'condition',
+    alias: CAN_VIEW_CONDITION,
+    name: 'User Activity Can View Condition',
+    api: () => import('./conditions/can-view.condition.js'),
+  },
+  {
+    type: 'workspaceView',
+    alias: 'UserActivity.WorkspaceView.User.Activity',
+    name: 'User Activity Tab',
+    element: () => import('./views/user-tab/user-tab.element.js'),
+    // Core's Details view is weight 90 (S1), so this tab follows it.
+    weight: 50,
+    meta: { label: '#userActivity_activity', pathname: 'activity', icon: 'icon-time' },
+    conditions: [
+      { alias: 'Umb.Condition.WorkspaceAlias', match: USER_WORKSPACE_ALIAS },
+      { alias: CAN_VIEW_CONDITION },
+    ],
+  },
+];

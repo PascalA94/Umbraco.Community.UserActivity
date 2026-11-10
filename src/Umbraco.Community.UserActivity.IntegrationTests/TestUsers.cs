@@ -24,7 +24,7 @@ public sealed class TestUsers
 
     private IUserGroupService UserGroupService => _services.GetRequiredService<IUserGroupService>();
 
-    public async Task<IUser> CreateAsync(string name, string[] groupAliases)
+    public async Task<IUser> CreateAsync(string name, string[] groupAliases, string? email = null)
     {
         var groupKeys = new HashSet<Guid>();
         foreach (var alias in groupAliases)
@@ -34,7 +34,7 @@ public sealed class TestUsers
             groupKeys.Add(group.Key);
         }
 
-        var email = $"{Guid.NewGuid():N}@example.test";
+        email ??= $"{Guid.NewGuid():N}@example.test";
         Attempt<UserCreationResult, UserOperationStatus> created = await UserService.CreateAsync(
             Constants.Security.SuperUserKey,
             new UserCreateModel { Email = email, UserName = email, Name = name, UserGroupKeys = groupKeys },

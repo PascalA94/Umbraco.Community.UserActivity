@@ -6,6 +6,15 @@ export const env = {
   testPassword: required('TEST_USER_PASSWORD'),
 };
 
+/** Seeded demo users (demo site Seed/DemoSeeder.cs). Passwords are read when a spec asks, so the smoke spec needs none. */
+export const demoUsers = {
+  sam: { email: 'sam@example.test', name: 'Sam Admin', passwordVar: 'SAM_PASSWORD' },
+  wren: { email: 'wren@example.test', name: 'Wren Writer', passwordVar: 'WREN_PASSWORD' },
+  ed: { email: 'ed@example.test', name: 'Ed Editor', passwordVar: 'ED_PASSWORD' },
+} as const;
+
+export const passwordOf = (user: keyof typeof demoUsers) => required(demoUsers[user].passwordVar);
+
 function required(name: string): string {
   const value = process.env[name];
   if (!value) throw new Error(`Set ${name} in tests/e2e/.env (see .env.example).`);
