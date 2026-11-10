@@ -153,6 +153,22 @@ public class ActivityQueryEngineTests
     }
 
     [Fact]
+    public async Task InexactTotal_WithMoreRows_PromisesANextPage()
+    {
+        // A source that can't count (core during a search, uSync over its cap) must still let the pager reach page 2
+        // (final review QA-F1): the lower bound goes past the rows returned when the source says more exist.
+        var cannot = new FakeSource("gamma", events: Events("gamma", 120, 3), canCount: false);
+
+        ActivityPage first = await Engine(cannot).QueryAsync(Query(skip: 0, take: 50), CancellationToken.None);
+        ActivityPage last = await Engine(cannot).QueryAsync(Query(skip: 100, take: 50), CancellationToken.None);
+
+        Assert.False(first.TotalIsExact);
+        Assert.True(first.Total > 50);
+        Assert.Equal(20, last.Items.Count);
+        Assert.Equal(120, last.Total);
+    }
+
+    [Fact]
     public async Task SourceThrows_PartialResults_StatusFailed()
     {
         var ok = new FakeSource("alpha", events: Events("alpha", 2, 1));

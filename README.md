@@ -9,8 +9,7 @@ A per-user Activity tab and a global Activity view under Users, reading Umbraco'
 
 A community package, not made or supported by Umbraco HQ. Requires Umbraco 17 (17.8.0 or later) or Umbraco 18 (18.3.0 or later), on .NET 10.
 
-<!-- TODO before the first release: add the best screenshot from assets/screenshots/ with an absolute URL, so it also shows on NuGet:
-![What it looks like](https://raw.githubusercontent.com/PascalA94/Umbraco.Community.UserActivity/main/assets/screenshots/screenshot-01-<what>.png) -->
+![The global Activity view under Users](https://raw.githubusercontent.com/PascalA94/Umbraco.Community.UserActivity/main/assets/screenshots/screenshot-01-global-view.png)
 
 ## Compatibility
 
@@ -25,9 +24,110 @@ A community package, not made or supported by Umbraco HQ. Requires Umbraco 17 (1
 dotnet add package Umbraco.Community.UserActivity
 ```
 
+## Before you install
+
+This package shows what your staff did in the backoffice. Treat what it shows like an HR record. This section is a starting point for your own checks, not legal advice.
+
+- **Lawful basis.** Under UK GDPR you need a lawful basis to look at staff activity. For most sites it is legitimate interests (Art. 6(1)(f)): keeping a system that holds personal data secure and accountable. Write a short legitimate-interests assessment. You decide this and record it, not the package.
+- **Tell your staff.** Your staff privacy notice should say that backoffice activity is recorded and who can see it.
+- **Who can see what.**
+  - People in the `admin` group who also have the Users section can see every user's Activity tab, their own included, and the global view. Change the groups with `AllowedUserGroups`.
+  - These people see every event's item names, whatever their start nodes. Only give this to people you trust with all content.
+  - Other users see nothing. With `AllowSelfView` on (off by default), a user who isn't an admin can see their own activity, and only that: from **Your activity** in their profile (select their avatar), or on their own tab if they have the Users section.
+  - The tab is hidden from everyone else. The **Activity** menu item shows to anyone with the Users section, but the view answers "not allowed" unless they are a reader. The API checks every request.
+- **Watching the watchers.** `LogViews` is on by default. Opening a user's tab, opening the global view for one user or for everyone, opening an event and every export each write a row to Umbraco's audit table, with the viewer and the person viewed. Those rows show on the viewer's own tab. Views are throttled to one row per viewer, person and hour. The throttle is kept per server, so a load-balanced site can write one row per server.
+- **Export is off by default.** Switch on `Export:Enabled` only if you need CSV files. A CSV leaves the backoffice, so it is outside these controls.
+- **Failed sign-ins.** Umbraco stores what someone typed as a username when a sign-in fails, and people sometimes type a password there. Readers see it in the event details. It is never put in an export.
+- **Query strings.** The views keep their filters in the URL, so search text and user keys can end up in proxy, CDN and monitoring logs.
+- **Erasure and retention.** The package reads other stores and deletes nothing from them. Umbraco, Automate, Forms, Umbraco.AI and uSync keep their rows under their own rules (see [Sources](#sources)). The "viewed" and "exported" rows this package writes go into Umbraco's audit table, which nothing cleans, so they are kept until you remove them. Include them in your retention policy.
+
+## IP addresses
+
+IP addresses are hidden by default (`ShowIpAddresses: false`), in the views, the event details and the export.
+
+The trade-off: when an account may have been compromised, the sign-in IP address is often the most useful fact (a sign-in from a network nobody recognises). Showing every admin every IP address all the time is more than most sites need, so the package leaves it off.
+
+For an investigation:
+1. Set `"UserActivity": { "ShowIpAddresses": true }` and restart the site. Only readers (the allowed groups) see IP addresses. Self-view users never do.
+2. Look at the sign-in events you need.
+3. Set it back to `false` and restart.
+
+Umbraco stores the IP address in its audit table either way. This setting only controls what this package shows.
+
 ## Use
 
-TODO: what the editor sees, and the settings (`appsettings.json` section, defaults).
+- **Global view:** Users section, **Activity** in the menu. Filter by user, source, event type, item type, date range and search. The filters are in the URL, so you can bookmark a view or send the link to another reader.
+- **A user's tab:** open a user in the Users section and choose the **Activity** tab. It has the same filters, locked to that user.
+- **Your own activity:** select your avatar, then **Open your activity** in the "Your activity" box. It shows to readers, and to everyone when `AllowSelfView` is on.
+- Select a row to open its details. Both views show the last 30 days by default.
+
+### Settings
+
+Every setting is optional. These are the defaults:
+
+```json
+"UserActivity": {
+  "AllowedUserGroups": ["admin"],
+  "AllowSelfView": false,
+  "DefaultRangeDays": 30,
+  "MaxRangeDays": 366,
+  "MaxDepth": 5000,
+  "SourceTimeoutSeconds": 5,
+  "ShowIpAddresses": false,
+  "LogViews": true,
+  "Export": { "Enabled": false, "MaxRows": 10000 },
+  "Sources": {
+    "Core": { "Enabled": true },
+    "Automate": { "Enabled": true },
+    "Forms": { "Enabled": true },
+    "AI": { "Enabled": true },
+    "uSync": { "Enabled": true },
+    "ArchivedUsers": { "Enabled": true }
+  }
+}
+```
+
+- `AllowedUserGroups` replaces the default, so list `admin` too if you still want it. Group aliases are compared ignoring case. A reader also needs the Users section.
+- A bad value stops the site at start-up, with an error naming the setting.
+- Source names ignore case (`Sources:AI` and `Sources:ai` are the same). An unknown source name logs one warning at start-up and is otherwise ignored, so you can share settings between sites with different packages installed.
+
+## Sources
+
+A source appears only when its package is installed. There are no licence checks: a package that is installed but unused just has no rows. Switch a source off with `UserActivity:Sources:<Name>:Enabled: false`. Switching off Automate, Forms or Archived Users hides their rows everywhere: the Umbraco source still leaves them out, so they don't show twice when the source is back on.
+
+| Source | Setting name | What it shows | How long its rows are kept |
+|---|---|---|---|
+| Umbraco | `Core` | Content, media, member, document type, template, language, dictionary and relation changes (`umbracoLog`); users, user groups, members, sign-ins, failed sign-ins, sign-outs, password changes and resets (`umbracoAudit`) | Kept by Umbraco. Umbraco's log scrubber deletes only `open` and `system` log rows older than `Umbraco:CMS:Logging:MaxLogAge` (24 hours by default). Nothing cleans `umbracoAudit` |
+| Umbraco Automate | `Automate` | Automation runs that changed CMS data. The person who started a run is the user and the service account is shown as "via". Scheduled and webhook runs show as automation | Kept by Umbraco (`umbracoAudit`) |
+| Umbraco Forms | `Forms` | Form create, save and delete, with the real user | Kept by Umbraco (`umbracoLog`) |
+| Umbraco.AI | `AI` | Umbraco.AI's audit log: which feature ran, for whom, and whether it worked. Never prompts, responses or error text | Umbraco.AI's own `RetentionDays`, 14 days by default. The view says how long it keeps |
+| uSync | `uSync` | Imports and exports from uSync's history (uSync 17.3.0 or later on Umbraco 17) | Files in uSync's temp folder, kept until that folder is cleared (which can happen on a deploy) or the history is cleared from uSync's dashboard |
+| Archived Users | `ArchivedUsers` | Archive, unarchive, auto-archive, auto-disable, export and purge actions from Umbraco.Community.ArchivedUsers | Kept by Umbraco (`umbracoLog`) |
+
+The item type filter covers content, media, members, document, media and member types, data types, templates, users and user groups. Other Umbraco rows (languages, dictionary items, relation types) show when no item type is chosen.
+
+Forms Audit Trail history isn't shown in this version. Form actions still show through the Forms source.
+
+### What Umbraco doesn't record
+
+The views show what each store recorded, and Umbraco leaves some gaps:
+- webhook changes aren't audited;
+- stylesheet, script and partial view edits are logged without a file name ("File (name not recorded by Umbraco)");
+- some work is logged against the default administrator account, shown with a "Default administrator" tag;
+- bulk media deletes are logged against the media root;
+- work done outside a backoffice request can show as "System".
+
+## Limits
+
+- **User matching.** Each source stores users its own way: Umbraco's log by user id, its audit table and Automate by user key, Umbraco.AI by key as text, and uSync by username. A user's tab shows events where they are the user or the "via" account. uSync rows match on the username, so a renamed user's older uSync rows show with the old name and aren't on their tab. If someone new is later given a username that someone else used before, the earlier person's uSync rows show on the new person's tab. Bear this in mind before you act on uSync rows. A deleted user's rows show as "Unknown user" with the name the source kept, if any.
+- **Each event shows once.** Automate's, Forms' and Archived Users' rows in Umbraco's tables belong to their own source, so the Umbraco source skips them. Two true rows about one action are both shown: an automation that saves content writes an Automate row for the run and an Umbraco row for the content.
+- **Date range.** The views show the last 30 days by default (`DefaultRangeDays`), and a range can be at most 366 days (`MaxRangeDays`).
+- **Depth.** You can page back through the newest 5,000 events in a range (`MaxDepth`). Past that, the view asks you to narrow the date range.
+- **Totals.** While a search is on, and when a source can't give an exact count (uSync with more than 5,000 history entries, or a third-party source that can't count), the total shows as a minimum, for example "1,000+". You can still page on.
+- **Partial results.** A source that fails or takes longer than `SourceTimeoutSeconds` is skipped, and the view names it in a warning. The other sources still show. On SQLite the timeout can't stop a query that is already running.
+- **Search** needs 3 to 100 characters. A source that can't search is left out while a search is on, and so is Umbraco.AI (its search would look at error text this package never shows). Umbraco.AI and uSync are also left out while an item type filter is on.
+- **Exports** are capped at `Export:MaxRows` rows (10,000), one at a time per user. A failed source stops the export rather than giving you an incomplete file.
+- **No recorder yet.** Packages that keep no history of their own (CSP Manager, Workflow, Skybrud Redirects, UrlTracker) get a recorder in 17.1 / 18.1.
 
 ## Add your own source
 

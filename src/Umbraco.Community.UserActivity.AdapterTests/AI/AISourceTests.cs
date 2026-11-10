@@ -122,8 +122,13 @@ public class AISourceTests
         Assert.Equal(T0.AddDays(-1), filter.FromDate);
         Assert.Equal(DateTimeKind.Utc, filter.FromDate!.Value.Kind);
         Assert.Equal(T0.AddDays(1), filter.ToDate);
-        Assert.Equal("abc", filter.SearchText);
+        // Umbraco.AI matches SearchText against error text we never show: never pass it (final review SEC-F1).
+        Assert.Null(filter.SearchText);
     }
+
+    [Fact]
+    public void CannotSearch_SoTheEngineSkipsItDuringASearch()
+        => Assert.False(Source().Info.CanSearch);
 
     [Theory]
     [InlineData(null)]

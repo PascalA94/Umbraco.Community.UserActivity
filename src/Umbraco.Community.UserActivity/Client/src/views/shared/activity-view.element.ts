@@ -27,6 +27,8 @@ export class UserActivityViewElement extends UmbLitElement {
   /** Locks the view to one user (the per-user tab). */
   @property({ type: String, attribute: 'user-key' }) userKey?: string;
   @property({ type: String }) heading?: string;
+  /** Keeps filters in memory instead of the query string, for a view opened over another page (the profile sidebar). */
+  @property({ type: Boolean, attribute: 'no-url' }) noUrl = false;
 
   @state() private _filters: ActivityFilters = filtersFromSearch('');
   @state() private _options?: ActivityFilterOptionsResponseModel;
@@ -39,7 +41,7 @@ export class UserActivityViewElement extends UmbLitElement {
 
   override connectedCallback() {
     super.connectedCallback();
-    window.addEventListener('popstate', this.#onPopState);
+    if (!this.noUrl) window.addEventListener('popstate', this.#onPopState);
     // Options first: the default window comes from the server's DefaultRangeDays, so the first list must wait for it.
     void this.#loadOptions().then(() => this.#readUrl());
   }
@@ -63,7 +65,8 @@ export class UserActivityViewElement extends UmbLitElement {
   }
 
   #readUrl() {
-    this._filters = { ...filtersFromSearch(window.location.search), userKey: this.userKey ?? filtersFromSearch(window.location.search).userKey };
+    const search = this.noUrl ? '' : window.location.search;
+    this._filters = { ...filtersFromSearch(search), userKey: this.userKey ?? filtersFromSearch(search).userKey };
     void this.#load();
   }
 
@@ -78,6 +81,7 @@ export class UserActivityViewElement extends UmbLitElement {
   }
 
   #writeUrl(filters: ActivityFilters, push: boolean) {
+    if (this.noUrl) return;
     // A locked user is part of the route, not the query string.
     const forUrl = this.userKey ? { ...filters, userKey: undefined } : filters;
     const search = filtersToSearch(forUrl);

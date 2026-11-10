@@ -92,7 +92,9 @@ public sealed class ActivityQueryEngine
             }
 
             truncated |= page.Truncated;
-            lowerBound += page.Total ?? page.Items.Count;
+            // Without a count, rows seen are the floor; one more when the source says more exist, so the pager can
+            // offer the next page (final review QA-F1).
+            lowerBound += page.Total ?? (page.Items.Count + (page.Truncated ? 1 : 0));
             var seen = new HashSet<string>(StringComparer.Ordinal);
             collected.AddRange(page.Items.Where(e => seen.Add(e.Id) && (user is null || Involves(e.Actor, user))));
         }

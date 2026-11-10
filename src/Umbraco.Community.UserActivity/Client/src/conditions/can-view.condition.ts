@@ -11,7 +11,8 @@ import { createAccessCache, tabVisible } from './can-view.js';
 let cache: ReturnType<typeof createAccessCache> | undefined;
 let cacheHost: UmbControllerHost | undefined;
 
-function access(host: UmbControllerHost) {
+/** The shared, once-per-session access answer (also used by the profile app). */
+export function access(host: UmbControllerHost) {
   cacheHost = host;
   cache ??= createAccessCache(() => userActivityApi.filterOptions(cacheHost!));
   return cache.get();

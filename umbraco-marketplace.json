@@ -4,7 +4,9 @@
   "Description": "A per-user Activity tab and a global Activity view under Users, reading Umbraco's audit logs and other packages' history.",
   "Category": "Editor Tools",
   "PackageType": "Package",
-  "LicenseTypes": ["Free"],
+  "LicenseTypes": [
+    "Free"
+  ],
   "DocumentationUrl": "https://github.com/PascalA94/Umbraco.Community.UserActivity#readme",
   "IssueTrackerUrl": "https://github.com/PascalA94/Umbraco.Community.UserActivity/issues",
   "LookingForContributors": true,
@@ -13,6 +15,22 @@
     "Url": "https://github.com/PascalA94",
     "ImageUrl": "https://github.com/PascalA94.png"
   },
-  "Screenshots": [],
-  "Tags": ["backoffice"]
+  "Screenshots": [
+    {
+      "ImageUrl": "https://raw.githubusercontent.com/PascalA94/Umbraco.Community.UserActivity/main/assets/screenshots/screenshot-01-global-view.png",
+      "Caption": "The global Activity view under Users, filtered by source and event type."
+    },
+    {
+      "ImageUrl": "https://raw.githubusercontent.com/PascalA94/Umbraco.Community.UserActivity/main/assets/screenshots/screenshot-02-user-tab.png",
+      "Caption": "A user's Activity tab with an event's details open."
+    }
+  ],
+  "Tags": [
+    "audit",
+    "activity",
+    "users",
+    "security",
+    "gdpr",
+    "backoffice"
+  ]
 }

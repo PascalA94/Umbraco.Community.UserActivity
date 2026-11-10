@@ -307,3 +307,33 @@ The last two rows were added after the M1 review: searches are no longer counted
 Result: well under the 2 s gate. The `umbracoLog` user filter inside `IX_umbracoLog_datestamp` and the `umbracoAudit` id-range bound (Pascal, 2026-11-07) both hold; no change to `MaxDepth` or paging.
 
 GO/NO-GO: **GO** (no Pascal decision needed).
+
+## M4 acceptance (Task 30), 2026-11-10
+
+Run on both lines over HTTPS on throwaway exercise sites (outside git): the demo site plus Umbraco Forms (17.6.2 / 18.2.2), Umbraco Automate (17.5.1 / 18.5.1), uSync (17.6.1 / 18.3.0) and Umbraco.AI (17.7.0 / 18.7.0), on SQL Server in a container. Synthetic users only (Sam admin, Wren writer, Ed editor, `example.test` addresses). The AI action is one audit row written through Umbraco.AI's own audit service (no provider call, Pascal 2026-11-10).
+
+| Check | 17 | 18 |
+|---|---|---|
+| Wren: failed sign-in, sign-in, page save, sign-out; each shows once with the right actor and source | yes | yes |
+| Failed sign-in names nobody (S5) | yes | yes |
+| Sam: form create shows under Umbraco Forms with the form's name | yes | yes |
+| Sam: uSync export shows under uSync (uSync writes no history entry for an import with no changes) | yes | yes |
+| Umbraco.AI row shows under Umbraco.AI with Wren as actor | yes | yes |
+| No IP column or value with the defaults | yes | yes |
+| Global view: 4 sources and 5 event types from a pasted URL restore the same view | - | yes |
+| `ShowIpAddresses: true`: the reader's detail shows the sign-in IP (the loopback address) | - | yes |
+| `Export:Enabled: true`: CSV has `'=HYPERLINK(...)` prefixed and `<img ...>` as text | - | yes |
+| `Sources:uSync:Enabled: false`: uSync gone from the source filter | - | yes |
+| Umbraco.AI removed: site boots with no error, `ai` gone | - | yes |
+| `AllowSelfView: true`: a writer (no Users section) opens **Your activity** from the profile and sees only their own events; the page URL is unchanged | yes | yes |
+| Same session, someone else's per-user endpoint and the global endpoint | - | 403 and 403 |
+| `AllowSelfView: false`: no **Your activity** box for a writer | - | yes |
+| Anonymous requests to the four endpoints | - | 401 |
+| Our log categories: lines containing a name, email, item name or IP | 0 | 0 |
+| Playwright spec on the demo (fresh SQLite) | 7 passed, 1 skipped (screenshots) | 7 passed, 1 skipped |
+
+Not exercised: a real Automate run (needs a service user, workspace and automation set up by hand; the S3 row shapes are covered by the integration tests).
+
+Found on the way:
+- **SQLite first-boot stall (core, not this package).** On a fresh SQLite database the demo seeder hung creating its second user while core rebuilt the database cache ("Database cache was serialized using None ... Rebuilding database cache"). The stack showed only the seeder, busy-retrying an `INSERT` into `umbracoUser`, with no frame of this package. A restart (no rebuild) seeded normally. Same family as CI rule 12; the CI e2e runs on SQL Server.
+- **Self-view had no route for users without the Users section** (final review QA-F3). Fixed in 0.1 with the profile route (design 6.2).

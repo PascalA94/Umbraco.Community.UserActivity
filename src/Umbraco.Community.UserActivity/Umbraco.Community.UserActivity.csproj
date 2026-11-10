@@ -26,7 +26,7 @@
     <PackageProjectUrl>https://github.com/PascalA94/Umbraco.Community.UserActivity</PackageProjectUrl>
     <RepositoryUrl>https://github.com/PascalA94/Umbraco.Community.UserActivity</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
-    <PackageTags>umbraco;umbraco-marketplace;umbracopackage;plugin;package</PackageTags>
+    <PackageTags>umbraco;umbraco-marketplace;umbracopackage;audit;activity;users;security;gdpr;backoffice</PackageTags>
     <GeneratePackageOnBuild>false</GeneratePackageOnBuild>
   </PropertyGroup>
 

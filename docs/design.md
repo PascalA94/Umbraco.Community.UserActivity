@@ -396,6 +396,8 @@ Everything from `@umbraco-cms/backoffice` and UUI. No custom colours, fonts or s
 - Same components as the global view, with the user filter **locked** (not shown) and a heading "Activity for {name}".
 - Its own filters: source, event type, item type, date, search. URL state as 6.1 within the workspace route.
 
+- **Your own activity from your profile (Pascal, 2026-11-10, final review QA-F3).** A user without the Users section can't open any user workspace, so the tab alone can't serve `AllowSelfView`. A `userProfileApp` (`UserActivity.UserProfileApp.Activity`) shows a "Your activity" box in the current user's profile panel to readers and self-view users (same cached `filter-options` answer). Its button opens a full-size sidebar (`UserActivity.Modal.MyActivity`) holding the shared view locked to the signed-in user, with filters kept in memory instead of the query string (the page underneath keeps its URL). The per-user endpoint and its rules are unchanged.
+
 ### 6.3 Detail view
 
 - Clicking a row (a real `<button>` in the first cell, so it's keyboard reachable) opens a **sidebar modal** (`umbOpenModal`, `type: 'sidebar'`, size `medium`).

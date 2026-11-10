@@ -48,7 +48,8 @@ internal static class AdapterProbe
             {
                 found = Exists(assembly, spec);
             }
-            catch (Exception ex) when (ex is TypeLoadException or FileNotFoundException or FileLoadException or BadImageFormatException or AmbiguousMatchException)
+            // Any failure to read the member means "not usable", never a start-up crash (SEC-F5).
+            catch (Exception)
             {
                 found = false;
             }

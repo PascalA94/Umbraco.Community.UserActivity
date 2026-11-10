@@ -20,6 +20,11 @@ body:
       label: User Activity version
     validations:
       required: true
+  - type: input
+    id: others
+    attributes:
+      label: Other packages
+      description: Versions of Umbraco Automate, Forms, Umbraco.AI, uSync or Archived Users, if installed and relevant.
   - type: dropdown
     id: database
     attributes:

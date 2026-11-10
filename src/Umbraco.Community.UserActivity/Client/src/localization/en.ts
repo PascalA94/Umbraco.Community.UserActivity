@@ -6,6 +6,9 @@ export default {
   userActivity: {
     activity: 'Activity',
     activityFor: (name: string) => `Activity for ${name}`,
+    myActivity: 'Your activity',
+    openMyActivity: 'Open your activity',
+    myActivityHint: 'What you did in the backoffice, from the sources this site has.',
 
     sourceCore: 'Umbraco',
     sourceAutomate: 'Umbraco Automate',

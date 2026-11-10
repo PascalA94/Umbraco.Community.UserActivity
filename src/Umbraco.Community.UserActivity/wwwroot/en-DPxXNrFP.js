@@ -2,6 +2,9 @@ const o = {
   userActivity: {
     activity: "Activity",
     activityFor: (e) => `Activity for ${e}`,
+    myActivity: "Your activity",
+    openMyActivity: "Open your activity",
+    myActivityHint: "What you did in the backoffice, from the sources this site has.",
     sourceCore: "Umbraco",
     sourceAutomate: "Umbraco Automate",
     sourceForms: "Umbraco Forms",

@@ -28,6 +28,23 @@ internal sealed class AdapterRegistrations
 
     public void Add(SourceAvailabilityResult result) => _results.Add(result);
 
+    /// <summary>
+    /// Runs one guard. Anything it throws (a hostile or odd assembly, an unexpected reflection error) makes the source
+    /// unavailable with one start-up Warning naming the exception type only, never the message, so the site still
+    /// starts (design 3.2, final review SEC-F5).
+    /// </summary>
+    public static SourceAvailabilityResult Safely(string alias, Func<SourceAvailabilityResult> tryRegister)
+    {
+        try
+        {
+            return tryRegister();
+        }
+        catch (Exception ex)
+        {
+            return new SourceAvailabilityResult(alias, AdapterState.ProbeFailed, null, "usable API (its check threw " + ex.GetType().Name + ")");
+        }
+    }
+
     public void LogProblems(ILogger logger)
     {
         foreach (SourceAvailabilityResult result in _results.Where(r => r.State == AdapterState.ProbeFailed))

@@ -20,6 +20,8 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
+          # The build runs npm and test code: don't leave the job's token in .git/config for it to read.
+          persist-credentials: false
 
       # One branch carries both lines, so a tag publishes only from main.
       - name: Tag is on main
