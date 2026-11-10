@@ -176,14 +176,95 @@ test('axe has no violations on both views and the open sidebar', async ({ page }
   expect((await scan('user-activity-detail-modal')).violations).toEqual([]);
 });
 
-// Draft screenshots (fake data only) for the README; final ones come in Task 27. Run with SCREENSHOTS=1.
-test('draft screenshots', async ({ page }) => {
-  test.skip(!process.env.SCREENSHOTS, 'set SCREENSHOTS=1 to write assets/screenshots');
-  mkdirSync('../../assets/screenshots', { recursive: true });
+// "Your activity" from the profile panel (QA-F3, profile-route review PR-2). The demo runs with self-view off, so this
+// checks the route as a reader and its absence for a non-reader; the self-view API rules are covered by the
+// integration tests.
+const profileBox = (page: Page) => page.locator('user-activity-my-activity-profile-app');
+const myActivity = (page: Page) => page.locator('user-activity-my-activity-modal user-activity-view');
+
+async function openProfilePanel(page: Page) {
+  const avatar = page.locator('umb-current-user-header-app uui-button').filter({ visible: true });
+  // The panel's code loads on the first click; on a slow runner that click can open nothing.
+  await expect(async () => {
+    await avatar.click();
+    await expect(page.locator('umb-current-user-history-user-profile-app').filter({ visible: true })).toBeVisible({ timeout: 2_000 });
+  }).toPass();
+}
+
+test('your activity opens from the profile, locked to you, and leaves the page URL alone', async ({ page }) => {
+  const guard = consoleGuard(page);
   await login(page, demoUsers.sam.email, passwordOf('sam'));
-  await openGlobal(page);
-  await page.screenshot({ path: '../../assets/screenshots/global-view.png' });
-  await page.goto(await profileLink(page, demoUsers.wren.name));
+  await page.goto('/umbraco/section/content');
+  const before = page.url();
+  await openProfilePanel(page);
+
+  const open = profileBox(page).locator('uui-button').filter({ visible: true });
+  await expect(async () => {
+    await open.click();
+    await expect(myActivity(page).locator('activity-table button.open').first()).toBeVisible({ timeout: 3_000 });
+  }).toPass();
+
+  // Locked to the signed-in user: no user column and no user filter.
+  await expect(myActivity(page).locator('activity-table uui-table-head-cell', { hasText: 'User' })).toHaveCount(0);
+  await expect(myActivity(page).locator('activity-filter-bar umb-user-input')).toHaveCount(0);
+
+  // Paging or opening an event never changes the page underneath.
+  await myActivity(page).locator('activity-table button.open').first().click();
+  await expect(page.locator('user-activity-detail-modal activity-detail')).toBeVisible();
+  await page.keyboard.press('Escape');
+  await expect(page.locator('user-activity-detail-modal')).toHaveCount(0);
+  expect(page.url()).toBe(before);
+  guard.assertNoErrors();
+});
+
+test('a user who may not read activity has no Your activity box', async ({ page }) => {
+  await login(page, demoUsers.ed.email, passwordOf('ed'));
+  await page.goto('/umbraco/section/content');
+  await openProfilePanel(page);
+  await expect(profileBox(page).locator('uui-box')).toHaveCount(0);
+  await expect(profileBox(page)).toBeHidden();
+});
+
+// Marketplace and README screenshots (fake data only). Run with SCREENSHOTS=1 against a site with several sources
+// installed and `UserActivity:AllowSelfView` on (the last shot is Wren's own activity); `URL` picks the site.
+test('screenshots', async ({ page }) => {
+  test.skip(!process.env.SCREENSHOTS, 'set SCREENSHOTS=1 to write assets/screenshots');
+  const dir = '../../assets/screenshots';
+  // Event types chosen so the test's own sign-ins (and core's "saved user" rows that follow them) stay out of the shots.
+  const busy = `${GLOBAL_URL}?category=created&category=published&category=ran&category=imported&category=exported`;
+  // Sidebars slide in; wait for that before taking the picture.
+  const settled = () => page.waitForTimeout(800);
+  mkdirSync(dir, { recursive: true });
+  await page.setViewportSize({ width: 1440, height: 860 });
+  await login(page, demoUsers.sam.email, passwordOf('sam'));
+
+  await page.goto(busy);
   await expect(rowButtons(page).first()).toBeVisible();
-  await page.screenshot({ path: '../../assets/screenshots/user-tab.png' });
+  await page.screenshot({ path: `${dir}/screenshot-01-global-view.png` });
+
+  const source = await openFilter(page, 'activity-filter-source');
+  await source.locator('uui-checkbox').nth(1).click();
+  await source.locator('uui-checkbox').nth(3).click();
+  await settled();
+  await page.screenshot({ path: `${dir}/screenshot-03-filters.png` });
+  await page.keyboard.press('Escape');
+
+  await page.goto(busy);
+  await page.goto(await profileLink(page, demoUsers.wren.name));
+  const automation = view(page).locator('activity-table uui-table-row', { hasText: 'automation' }).locator('button.open');
+  await expect(automation.first()).toBeVisible();
+  await automation.first().click();
+  await expect(page.locator('user-activity-detail-modal activity-detail')).toBeVisible();
+  await settled();
+  await page.screenshot({ path: `${dir}/screenshot-02-user-tab.png` });
+  await page.keyboard.press('Escape');
+
+  await page.context().clearCookies();
+  await login(page, demoUsers.wren.email, passwordOf('wren'));
+  await page.goto('/umbraco/section/content');
+  await openProfilePanel(page);
+  await profileBox(page).locator('uui-button').filter({ visible: true }).click();
+  await expect(myActivity(page).locator('activity-table button.open').first()).toBeVisible();
+  await settled();
+  await page.screenshot({ path: `${dir}/screenshot-04-your-activity.png` });
 });

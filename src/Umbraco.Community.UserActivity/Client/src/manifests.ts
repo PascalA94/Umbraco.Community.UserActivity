@@ -1,3 +1,5 @@
+import { MY_ACTIVITY_MODAL_ALIAS } from './modal/aliases.js';
+
 // Aliases are permanent once released: every one is prefixed "UserActivity." (design 5).
 // Workspace and menu aliases are the S1 spike's, identical on 17.8 and 18.3 (docs/spikes.md).
 export const ROOT_ENTITY_TYPE = 'user-activity-root';
@@ -53,7 +55,7 @@ export const manifests: Array<UmbExtensionManifest> = [
   },
   {
     type: 'modal',
-    alias: 'UserActivity.Modal.MyActivity',
+    alias: MY_ACTIVITY_MODAL_ALIAS,
     name: 'User Activity Your Activity Modal',
     element: () => import('./modal/my-activity-modal.element.js'),
   },
@@ -63,6 +65,8 @@ export const manifests: Array<UmbExtensionManifest> = [
     type: 'userProfileApp',
     alias: 'UserActivity.UserProfileApp.Activity',
     name: 'User Activity Profile App',
+    // Core's profile apps use 100-1000; a low weight puts this box last, after core's own.
+    weight: 10,
     element: () => import('./profile/my-activity-profile-app.element.js'),
     meta: { label: '#userActivity_myActivity', pathname: 'activity' },
   },

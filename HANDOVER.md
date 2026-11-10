@@ -59,7 +59,17 @@ Verdicts are saved privately: `reviews/m4-final-qa-review.md` and `reviews/m4-fi
   - user items show "user / 2" (type and id) instead of the user's name;
   - each sign-in is followed by two core "System, Saved, user" rows (core updating the last-login date).
 
-**Not reviewed:** the profile route was added after the reviews, as part of the fix pass. It is covered by Vitest, tsc on 17 and 18.3, check-xss and hands-on runs on both lines, but no fresh reviewer has read it. Ask for a `qa-reviewer` pass on it if you want one before the tag.
+**Profile route review (after the fix pass):** a fresh `qa-reviewer` read the profile route (verdict: ship with changes, no Critical; saved privately as `reviews/m4-profile-route-review.md`). All six findings were fixed before the release:
+- PR-1: component tests for "Your activity" (`profile-route.render.test.ts`). Each was proved by breaking the code it guards.
+- PR-2: Playwright tests for the route and for its absence.
+- PR-3: one modal alias constant.
+- PR-4: explicit weight and a hidden host.
+- PR-5: no module-level host in the access cache.
+- PR-6: README wording.
+
+**First release-checks run (on `2d3f084`): failed.** SQL Server integration failed on both lines in three Forms tests. Their stand-in `UFForms` table used SQLite-only types; the package code was fine. The fixture now uses Forms' SQL Server types, and the full integration suite passes on SQL Server locally (122/122 on 17 and 18).
+
+**Presentation:** a new icon (a history clock on the navy tile) and four screenshots from a site with all five sources: the global view, a user's tab with an Automate run open, the filters, and "Your activity". They are in the README and the Marketplace JSON. The test `screenshots` in `tests/e2e/specs/activity.spec.ts` (`SCREENSHOTS=1`) retakes them.
 
 ## Exercise (Task 30)
 
@@ -81,12 +91,13 @@ The Playwright spec on the demo passed on 17 and 18 (7 passed, 1 skipped each).
 | Command | 17 | 18 |
 |---|---|---|
 | `bash build/test.sh` | unit 247/247, integration 122/122, adapter 32/32 | same |
-| `cd src/Umbraco.Community.UserActivity/Client && npm ci --ignore-scripts && npm run build && npm test` | Vitest 46/46, no `wwwroot/` drift | |
+| integration on SQL Server (`Tests__Database__DatabaseType=SqlServer`) | 122/122 | 122/122 |
+| `cd src/Umbraco.Community.UserActivity/Client && npm ci --ignore-scripts && npm run build && npm test` | Vitest 53/53, no `wwwroot/` drift | |
 | client `tsc --noEmit` against `@umbraco-cms/backoffice@^18.3.0` | | clean |
 | `bash build/check-xss.sh` | exit 0 | |
 | `UmbracoMajor=<line> bash build/check-vulnerable.sh` | clean | clean |
 | `bash build/pack.sh <dir>` | 17.0.0: deps Umbraco only, `staticwebassets/index.js`, only our DLL | 18.0.0: same |
-| `npx playwright test --reporter=line` (demo up, env vars as `tests/e2e/.env.example`) | 7 passed, 1 skipped | 7 passed, 1 skipped |
+| `npx playwright test --reporter=line` (demo up, env vars as `tests/e2e/.env.example`) | 9 passed, 1 skipped | 9 passed, 1 skipped |
 | `actionlint`; `gitleaks git . --redact` | clean; no leaks | |
 
 ## Not verified, and why
@@ -101,12 +112,10 @@ The Playwright spec on the demo passed on 17 and 18 (7 passed, 1 skipped each).
 ## Your to-do list, in order
 
 1. ~~Milestone commit~~ (done, `8769ba1`), ~~push and PR~~ (done, PR #3; merged once its checks are green).
-2. Run `gh workflow run release-checks.yml --ref main`. Expected: both lines green (HTTPS, SQL Server, Playwright, axe). If anything fails, start a session to fix it.
+2. ~~Release checks~~: the first run failed (Forms test fixture on SQL Server). It is fixed in the release-polish PR; re-run on `main` after that merges.
 3. Before the first tag:
-   - reserve the NuGet ID (`0.0.1-alpha`, push, unlist, 2FA);
-   - add a nuget.org Trusted Publishing policy for this repo and `publish.yml`;
-   - set the `NUGET_USER` secret;
-   - give the `nuget` environment a required reviewer and a `release/*` tag rule;
+   - ~~Trusted Publishing policy~~ and ~~`NUGET_USER` secret~~ (done by you);
+   - ~~`nuget` environment with you as required reviewer and a `release/*` tag rule~~ (done);
    - restrict tag creation.
    SEC-F8 escalated these because they can't be checked from the repo.
 4. Repo settings (README "Repo settings"): CodeQL is on. Check secret scanning and push protection, private vulnerability reporting, Dependabot alerts, squash-only with branch delete, a ruleset on `main`, and topics `umbraco`, `umbracopackage`, `dotnet`, `audit`, `activity`, `users`, `security`, `gdpr`, `backoffice`. Dismiss CodeQL `cs/web/missing-token-validation` if it appears (README).

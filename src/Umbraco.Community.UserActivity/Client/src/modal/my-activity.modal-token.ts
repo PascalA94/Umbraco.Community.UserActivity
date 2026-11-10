@@ -5,7 +5,9 @@ export interface MyActivityModalData {
   userKey: string;
 }
 
-export const MY_ACTIVITY_MODAL_ALIAS = 'UserActivity.Modal.MyActivity';
+import { MY_ACTIVITY_MODAL_ALIAS } from './aliases.js';
+
+export { MY_ACTIVITY_MODAL_ALIAS };
 
 export const MY_ACTIVITY_MODAL = new UmbModalToken<MyActivityModalData, never>(MY_ACTIVITY_MODAL_ALIAS, {
   modal: { type: 'sidebar', size: 'full' },

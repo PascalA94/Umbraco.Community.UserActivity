@@ -17,7 +17,11 @@ export class UserActivityMyActivityProfileAppElement extends UmbLitElement {
 
   constructor() {
     super();
-    void access(this).then((result) => (this._visible = profileVisible(result)));
+    this.hidden = true;
+    void access(this).then((result) => {
+      this._visible = profileVisible(result);
+      this.hidden = !this._visible;
+    });
     this.consumeContext(UMB_CURRENT_USER_CONTEXT, (current) => {
       if (!current) return;
       this.observe(current.unique, (unique) => (this._userKey = unique ?? undefined), '_userActivityCurrentUser');
@@ -44,6 +48,10 @@ export class UserActivityMyActivityProfileAppElement extends UmbLitElement {
   }
 
   static override styles = css`
+    /* No empty slot (and no flex gap) in the profile panel for people who can't see the box. */
+    :host([hidden]) {
+      display: none;
+    }
     p {
       margin-top: 0;
     }
