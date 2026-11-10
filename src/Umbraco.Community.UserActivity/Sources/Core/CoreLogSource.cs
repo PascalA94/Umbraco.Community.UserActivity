@@ -42,7 +42,10 @@ internal sealed class CoreLogSource
             query.EntityTypes.Select(e => e.ToLowerInvariant()).ToList(),
             _claims.LogEntityTypes,
             query.Search,
-            query.Ascending);
+            query.Ascending)
+        {
+            ExcludedRows = _claims.LogRows,
+        };
 
         // Read-only: autoComplete only ends the scope, nothing is written (design 3.8).
         using IScope scope = _scopes.CreateScope(autoComplete: true);
@@ -60,7 +63,7 @@ internal sealed class CoreLogSource
     {
         using IScope scope = _scopes.CreateScope(autoComplete: true);
         CoreTimeouts.Apply(scope, _options.CurrentValue);
-        LogRow? row = scope.Database.FirstOrDefault<LogRow>(CoreSql.LogById(scope.SqlContext, id, _claims.LogEntityTypes));
+        LogRow? row = scope.Database.FirstOrDefault<LogRow>(CoreSql.LogById(scope.SqlContext, id, _claims.LogEntityTypes, _claims.LogRows));
         return Task.FromResult(row is null ? null : Map(row, withDetails: true));
     }
 

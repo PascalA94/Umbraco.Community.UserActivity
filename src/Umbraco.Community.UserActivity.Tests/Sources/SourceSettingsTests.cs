@@ -105,6 +105,20 @@ public class SourceSettingsTests
     }
 
     [Fact]
+    public void ThrowingIsAvailable_IsUnavailable_OthersStay()
+    {
+        // M3 review QA-1: one source's IsAvailable must not take every Activity request down.
+        var broken = NSubstitute.Substitute.For<IUserActivitySource>();
+        NSubstitute.SubstituteExtensions.Returns(broken.Alias, "broken");
+        NSubstitute.SubstituteExtensions.Returns(broken.IsAvailable, _ => throw new MissingMethodException("x", "y"));
+        var fine = new FakeSource("fine");
+        var availability = new SourceAvailability(new UserActivitySourceCollection(() => [broken, fine]),
+            new StaticOptionsMonitor<Umbraco.Community.UserActivity.Configuration.UserActivityOptions>(new()));
+
+        Assert.Equal(["fine"], availability.GetActive().Select(s => s.Alias));
+    }
+
+    [Fact]
     public void NoLicenceChecks_InPackageSource()
     {
         // Pascal P5: no licence checks anywhere. Only README text may mention licences.

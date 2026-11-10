@@ -5,6 +5,7 @@ using Umbraco.Cms.Core.Notifications;
 using Umbraco.Cms.Core;
 using Umbraco.Community.UserActivity.Configuration;
 using Umbraco.Community.UserActivity.Sources;
+using AdapterTypes = Umbraco.Community.UserActivity.Sources.Adapters;
 using Umbraco.Community.UserActivity.Tests.Configuration;
 
 namespace Umbraco.Community.UserActivity.Tests.Sources;
@@ -43,5 +44,23 @@ public class StartupCheckTests
         check.Handle(Starting());
 
         Assert.Single(logger.Collector.GetSnapshot());
+    }
+
+    [Fact]
+    public void Startup_AdapterProbeFailed_WarnsOnce()
+    {
+        var builder = new UserActivitySourceCollectionBuilder();
+        var services = new ServiceCollection();
+        builder.RegisterWith(services);
+        services.AddSingleton<IOptionsMonitor<UserActivityOptions>>(new StaticOptionsMonitor<UserActivityOptions>(new UserActivityOptions()));
+        services.AddSingleton<SourceAvailability>();
+        var adapters = new AdapterTypes.AdapterRegistrations();
+        adapters.Add(new AdapterTypes.SourceAvailabilityResult(SourceAlias.AI, AdapterTypes.AdapterState.ProbeFailed, "17.9.0.0", "Umbraco.AI.Core.AuditLog.AIAuditLog.UserId"));
+        services.AddSingleton(adapters);
+        var logger = new FakeLogger<SourceAvailability>();
+
+        new UserActivityStartupCheck(services.BuildServiceProvider(), logger).Handle(Starting());
+
+        Assert.Contains("17.9.0.0", Assert.Single(logger.Collector.GetSnapshot()).Message);
     }
 }

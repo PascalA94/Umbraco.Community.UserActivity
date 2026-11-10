@@ -11,4 +11,16 @@ public interface IClaimsCoreAuditRows
 
     /// <summary><c>umbracoLog.entityType</c> values, ignoring case, e.g. <c>Form</c>.</summary>
     IReadOnlyCollection<string> ClaimedLogEntityTypes { get; }
+
+    /// <summary>
+    /// Part of an entity type's <c>umbracoLog</c> rows, when the whole type is too broad: Archived Users claims
+    /// <c>User</c> rows with header <c>Custom</c> whose comment starts <c>ArchivedUsers:</c>. Empty by default.
+    /// </summary>
+    IReadOnlyCollection<ClaimedLogRows> ClaimedLogRows => [];
 }
+
+/// <summary>
+/// <c>umbracoLog</c> rows with this entity type and header (ignoring case) whose comment starts with
+/// <paramref name="CommentPrefix"/> (ignoring case, as SQL <c>LIKE</c> does on default collations).
+/// </summary>
+public sealed record ClaimedLogRows(string EntityType, string LogHeader, string CommentPrefix);

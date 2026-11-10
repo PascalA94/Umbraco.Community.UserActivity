@@ -55,6 +55,10 @@ public class ScaffoldTests
             var libDlls = zip.Entries.Where(e => e.FullName.StartsWith("lib/", StringComparison.Ordinal) && e.FullName.EndsWith(".dll", StringComparison.Ordinal))
                 .Select(e => e.Name).ToList();
             Assert.Equal(["Umbraco.Community.UserActivity.dll"], libDlls);
+
+            // Nuspec_HasNoAIDependency (plan Task 22): no optional integration's assembly anywhere in the package.
+            string[] optional = ["Umbraco.AI", "uSync", "Umbraco.Community.ArchivedUsers", "Umbraco.Community.FormsAuditTrail"];
+            Assert.DoesNotContain(zip.Entries, e => optional.Any(o => e.Name.StartsWith(o, StringComparison.OrdinalIgnoreCase)));
         }
         finally
         {

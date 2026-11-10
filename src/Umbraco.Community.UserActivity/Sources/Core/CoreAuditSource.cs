@@ -77,10 +77,10 @@ internal sealed class CoreAuditSource
 
     /// <summary>
     /// The first and last id inside the window, by binary search over primary-key seeks (about 2 x log2(rows)
-    /// single-row reads). Ids grow with time, so the range covers the window; a row written with a back-dated
+    /// single-row reads), shared by every source over <c>umbracoAudit</c>. Ids grow with time, so the range covers the window; a row written with a back-dated
     /// timestamp can fall just outside it. Null when no row is inside.
     /// </summary>
-    private static (int Low, int High)? IdRange(IScope scope, DateTime fromUtc, DateTime toUtc)
+    internal static (int Low, int High)? IdRange(IScope scope, DateTime fromUtc, DateTime toUtc)
     {
         int? min = scope.Database.ExecuteScalar<int?>(CoreAuditSql.MinMaxId(scope.SqlContext, max: false));
         int? max = scope.Database.ExecuteScalar<int?>(CoreAuditSql.MinMaxId(scope.SqlContext, max: true));

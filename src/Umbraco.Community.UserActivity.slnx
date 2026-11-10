@@ -2,5 +2,7 @@
   <Project Path="Umbraco.Community.UserActivity/Umbraco.Community.UserActivity.csproj" />
   <Project Path="Umbraco.Community.UserActivity.Tests/Umbraco.Community.UserActivity.Tests.csproj" />
   <Project Path="Umbraco.Community.UserActivity.IntegrationTests/Umbraco.Community.UserActivity.IntegrationTests.csproj" />
+  <Project Path="Umbraco.Community.UserActivity.AdapterTests/Umbraco.Community.UserActivity.AdapterTests.csproj" />
+  <Project Path="../samples/SampleSource/SampleSource.csproj" />
   <Project Path="../demo/Umbraco.Community.UserActivity.DemoSite/Umbraco.Community.UserActivity.DemoSite.csproj" />
 </Solution>

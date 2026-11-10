@@ -1,0 +1,59 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Runs the runtime adapters against the real integrations (design 3.2), in their own process so the main test
+    projects keep proving the "not installed" path. Each integration is a normal runtime reference here, at
+    <Name>RuntimeVersion: the line's oldest supported release by default (the compile version, locked), and the newest
+    on the CI latest leg (<line>.*, unlocked, like UmbracoTestVersion).
+  -->
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <IsPackable>false</IsPackable>
+    <AIRuntimeVersion Condition="'$(AIRuntimeVersion)' == ''">$(AICompileVersion)</AIRuntimeVersion>
+    <USyncRuntimeVersion Condition="'$(USyncRuntimeVersion)' == ''">$(USyncCompileVersion)</USyncRuntimeVersion>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.11.0" />
+    <PackageReference Include="NSubstitute" Version="6.2.0" />
+    <PackageReference Include="xunit" Version="2.9.3" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="4.0.1">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+    <PackageReference Include="uSync.History" Version="$(USyncRuntimeVersion)" />
+  </ItemGroup>
+
+  <!--
+    Umbraco.AI.Core as its DLL only (PackageDownload, exact version): its dependency graph (ImageSharp, AngleSharp,
+    Microsoft.Extensions.AI, ...) isn't needed for the types the adapter binds to, and ImageSharp's only patched 3.x
+    release needs a Six Labors licence key to build. PackageDownload needs an exact version, so the CI latest leg
+    resolves the newest <line>.x and passes it as AIRuntimeVersion.
+  -->
+  <ItemGroup>
+    <PackageDownload Include="Umbraco.AI.Core" Version="[$(AIRuntimeVersion)]" />
+    <Reference Include="Umbraco.AI.Core">
+      <HintPath>$(NuGetPackageRoot)umbraco.ai.core/$(AIRuntimeVersion)/lib/net10.0/Umbraco.AI.Core.dll</HintPath>
+      <Private>true</Private>
+    </Reference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Umbraco.Community.UserActivity\Umbraco.Community.UserActivity.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <AssemblyAttribute Include="System.Reflection.AssemblyMetadataAttribute">
+      <_Parameter1>AIRuntimeVersion</_Parameter1>
+      <_Parameter2>$(AIRuntimeVersion)</_Parameter2>
+    </AssemblyAttribute>
+    <AssemblyAttribute Include="System.Reflection.AssemblyMetadataAttribute">
+      <_Parameter1>USyncRuntimeVersion</_Parameter1>
+      <_Parameter2>$(USyncRuntimeVersion)</_Parameter2>
+    </AssemblyAttribute>
+    <Using Include="Xunit" />
+  </ItemGroup>
+
+</Project>

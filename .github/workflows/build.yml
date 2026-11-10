@@ -31,11 +31,14 @@ jobs:
         # latest: newest <line>.x, restored unlocked; the lock files it rewrites are never committed.
         leg: [floor, latest]
     # MSBuild reads environment variables as properties: UmbracoMajor picks the line, and the latest leg floats the test and
-    # demo Umbraco versions. Empty values fall through to Directory.Build.props defaults (the floor).
+    # demo Umbraco versions and the integrations the AdapterTests load (the floor leg runs them at the line's oldest
+    # supported release). Empty values fall through to the defaults (the floor, and the adapters' compile versions).
+    # AIRuntimeVersion must be exact (the AdapterTests download Umbraco.AI.Core's DLL only), so a step resolves it.
     env:
       UmbracoMajor: ${{ matrix.line }}
       UmbracoTestVersion: ${{ matrix.leg == 'latest' && format('{0}.*', matrix.line) || '' }}
       UmbracoDemoVersion: ${{ matrix.leg == 'latest' && format('{0}.*', matrix.line) || '' }}
+      USyncRuntimeVersion: ${{ matrix.leg == 'latest' && format('{0}.*', matrix.line) || '' }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
@@ -55,6 +58,15 @@ jobs:
       - name: Lock files unchanged
         if: matrix.leg == 'floor'
         run: git diff --exit-code -- '**/packages.*.lock.json'
+
+      # Newest stable Umbraco.AI.Core on this line, from nuget.org's public index; written to the job environment.
+      - name: Resolve latest Umbraco.AI.Core
+        if: matrix.leg == 'latest'
+        run: |
+          version="$(curl -fsSL https://api.nuget.org/v3-flatcontainer/umbraco.ai.core/index.json \
+            | python3 -c 'import json,sys; line=sys.argv[1]; v=[x for x in json.load(sys.stdin)["versions"] if x.split(".")[0]==line and "-" not in x]; print(v[-1] if v else "")' "$UmbracoMajor")"
+          test -n "$version"
+          echo "AIRuntimeVersion=$version" >> "$GITHUB_ENV"
 
       - name: Restore (latest minor, unlocked)
         if: matrix.leg == 'latest'

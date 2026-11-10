@@ -3,6 +3,7 @@ using Microsoft.Extensions.Options;
 using Umbraco.Community.UserActivity.Configuration;
 using Umbraco.Community.UserActivity.Identity;
 using Umbraco.Community.UserActivity.Sources;
+using Umbraco.Community.UserActivity.Sources.Adapters;
 
 namespace Umbraco.Community.UserActivity.Query;
 
@@ -19,19 +20,22 @@ public sealed class ActivityQueryEngine
     private readonly IOptionsMonitor<UserActivityOptions> _options;
     private readonly TimeProvider _time;
     private readonly ILogger<ActivityQueryEngine> _logger;
+    private readonly SourceFailures _failures;
 
     public ActivityQueryEngine(
         SourceAvailability availability,
         UserIdentityResolver resolver,
         IOptionsMonitor<UserActivityOptions> options,
         TimeProvider time,
-        ILogger<ActivityQueryEngine> logger)
+        ILogger<ActivityQueryEngine> logger,
+        SourceFailures failures)
     {
         _availability = availability;
         _resolver = resolver;
         _options = options;
         _time = time;
         _logger = logger;
+        _failures = failures;
     }
 
     public async Task<ActivityPage> QueryAsync(ActivityQuery query, CancellationToken ct)
@@ -74,6 +78,12 @@ public sealed class ActivityQueryEngine
                 continue;
             }
 
+            if (_failures.IsBroken(source.Alias))
+            {
+                results.Add(new SourceResult(source.Alias, SourceStatus.Failed, null));
+                continue;
+            }
+
             (ActivitySourcePage? page, string status) = await RunAsync(source, sourceQuery, options, ct);
             results.Add(new SourceResult(source.Alias, status, page?.Total));
             if (page is null)
@@ -88,7 +98,7 @@ public sealed class ActivityQueryEngine
         }
 
         var merged = collected.Order(query.Ascending ? ActivityEventOrder.Ascending : ActivityEventOrder.Descending).ToList();
-        var items = merged.Skip(query.Skip).Take(query.Take).ToList();
+        var items = merged.Skip(query.Skip).Take(query.Take).Select(e => GateIp(e, options)).ToList();
         var exact = results.All(r => (r.Status == SourceStatus.Ok && r.Count is not null) || r.Status == SourceStatus.Skipped);
         // Inexact totals are a lower bound ("1,000+"): counts where sources gave them, rows seen where they didn't.
         var depthCapped = limit >= options.MaxDepth && (truncated || merged.Count > limit);
@@ -100,7 +110,7 @@ public sealed class ActivityQueryEngine
     public async Task<ActivityDetail?> GetAsync(string sourceAlias, string id, CancellationToken ct)
     {
         IUserActivitySource? source = _availability.GetActive(sourceAlias);
-        if (source is null)
+        if (source is null || _failures.IsBroken(source.Alias))
         {
             return null;
         }
@@ -112,14 +122,21 @@ public sealed class ActivityQueryEngine
         }
         catch (Exception ex) when (!ct.IsCancellationRequested)
         {
-            LogFailure(source.Alias, ex);
+            LogFailure(source, ex);
             return null;
         }
 
         return found is null || !string.Equals(found.Source, source.Alias, StringComparison.Ordinal)
             ? null
-            : new ActivityDetail(found, await ResolveActorsAsync([found], ct));
+            : new ActivityDetail(GateIp(found, _options.CurrentValue), await ResolveActorsAsync([found], ct));
     }
+
+    /// <summary>
+    /// <c>ShowIpAddresses</c> (default off, Pascal P8) is enforced here for every source, so a third-party source
+    /// that fills <see cref="ActivityEvent.IpAddress"/> can't show it with the setting off (M3 review QA-3).
+    /// </summary>
+    private static ActivityEvent GateIp(ActivityEvent e, UserActivityOptions options)
+        => options.ShowIpAddresses || e.IpAddress is null ? e : e with { IpAddress = null };
 
     /// <summary>
     /// True when the user is the actor or the <c>Via</c> (design 3.5). Sources filter by user themselves; this
@@ -139,8 +156,9 @@ public sealed class ActivityQueryEngine
             return id == user.Id;
         }
 
-        // Username-only sources (uSync) keep the username as the stored name.
-        return actor.StoredName is { } name && user.Username is { } username && string.Equals(name, username, StringComparison.OrdinalIgnoreCase);
+        // Username-only sources (uSync) keep the username as the stored name. An automation's or the system's stored
+        // name is a label ("Automate (scheduled)"), never a username.
+        return actor.Kind is not (ActorKind.Automation or ActorKind.System) && actor.StoredName is { } name && user.Username is { } username && string.Equals(name, username, StringComparison.OrdinalIgnoreCase);
     }
 
     private async Task<(ActivitySourcePage? Page, string Status)> RunAsync(IUserActivitySource source, ActivitySourceQuery query, UserActivityOptions options, CancellationToken ct)
@@ -160,7 +178,7 @@ public sealed class ActivityQueryEngine
             _logger.LogWarning("User Activity source {SourceAlias} timed out after {TimeoutSeconds} s.", source.Alias, options.SourceTimeoutSeconds);
             return (null, SourceStatus.TimedOut);
         }
-        catch (Exception ex) when (!ct.IsCancellationRequested && _time.GetElapsedTime(started) >= limit)
+        catch (Exception ex) when (!ct.IsCancellationRequested && !SourceFailures.IsBindingFailure(ex) && _time.GetElapsedTime(started) >= limit)
         {
             // Synchronous sources (core's SQL) can't be preempted; their own command timeout throws at the limit.
             _logger.LogWarning("User Activity source {SourceAlias} timed out after {TimeoutSeconds} s ({ExceptionType}).", source.Alias, options.SourceTimeoutSeconds, ex.GetType().FullName);
@@ -168,14 +186,41 @@ public sealed class ActivityQueryEngine
         }
         catch (Exception ex) when (!ct.IsCancellationRequested)
         {
-            LogFailure(source.Alias, ex);
+            LogFailure(source, ex);
             return (null, SourceStatus.Failed);
         }
     }
 
     // Exception type only: messages and stack data can carry names, search text or stored values (design 7.4).
-    private void LogFailure(string alias, Exception ex)
-        => _logger.LogWarning("User Activity source {SourceAlias} failed: {ExceptionType}.", alias, ex.GetType().FullName);
+    // A binding failure means an optional integration changed shape: that source stays failed until restart
+    // (design 3.2), logged once with the integration's version so the site owner knows which upgrade broke it.
+    private void LogFailure(IUserActivitySource source, Exception ex)
+    {
+        if (!SourceFailures.IsBindingFailure(ex))
+        {
+            _logger.LogWarning("User Activity source {SourceAlias} failed: {ExceptionType}.", source.Alias, ex.GetType().FullName);
+            return;
+        }
+
+        if (_failures.MarkBroken(source.Alias))
+        {
+            _logger.LogWarning(
+                "User Activity source {SourceAlias} is unavailable until restart: {ExceptionType} (integration assembly version {AssemblyVersion}).",
+                source.Alias, ex.GetType().FullName, IntegrationVersion(source));
+        }
+    }
+
+    private static string? IntegrationVersion(IUserActivitySource source)
+    {
+        try
+        {
+            return (source as IRuntimeAdapter)?.IntegrationVersion;
+        }
+        catch (Exception ex) when (SourceFailures.IsBindingFailure(ex))
+        {
+            return null;
+        }
+    }
 
     private async Task<IReadOnlyDictionary<ActorRef, ActorDisplay>> ResolveActorsAsync(IEnumerable<ActivityEvent> items, CancellationToken ct)
     {

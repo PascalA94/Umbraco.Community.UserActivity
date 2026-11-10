@@ -99,6 +99,69 @@ internal static class CoreAuditSql
         return sql;
     }
 
+    /// <summary>Rows another source claimed, read by that source (design 3.6): the same table, bound and columns.</summary>
+    /// <param name="Prefix">The claimed <c>eventType</c> prefix; only rows under it are returned.</param>
+    /// <param name="UserKey">Rows performed by this account, or whose <c>eventDetails</c> contain <paramref name="DetailsUserPattern"/>.</param>
+    /// <param name="DetailsUserPattern">A literal the details hold for this user (Automate: <c>"user:&lt;key&gt;"</c>); escaped here.</param>
+    public sealed record ClaimedFilter(
+        int LowId,
+        int HighId,
+        DateTime FromUtc,
+        DateTime ToUtc,
+        string Prefix,
+        Guid? UserKey,
+        int? UserId,
+        string? DetailsUserPattern,
+        string? Search,
+        bool Ascending);
+
+    public static Sql<ISqlContext> Claimed(ISqlContext ctx, ClaimedFilter filter, bool count)
+    {
+        Names n = new(ctx.SqlSyntax);
+        Sql<ISqlContext> sql = ctx.Sql(count ? "SELECT COUNT(*)" : Columns(n)).Append($"FROM {n.Table} a");
+        sql.Append($"WHERE a.{n.Id} >= @0 AND a.{n.Id} <= @1", filter.LowId, filter.HighId);
+        sql.Append($"AND a.{n.Date} >= @0 AND a.{n.Date} <= @1", filter.FromUtc, filter.ToUtc);
+        sql.Append($"AND a.{n.EventType} LIKE @0 ESCAPE '{CoreSql.LikeEscape}'", PrefixPattern(filter.Prefix));
+
+        if (filter.UserKey is { } key)
+        {
+            int id = filter.UserId ?? int.MinValue;
+            if (filter.DetailsUserPattern is { } pattern)
+            {
+                sql.Append(
+                    $"AND (a.{n.PerformerKey} = @0 OR (a.{n.PerformerKey} IS NULL AND a.{n.PerformerId} = @1) OR a.{n.EventDetails} LIKE @2 ESCAPE '{CoreSql.LikeEscape}')",
+                    key, id, CoreSql.ContainsPattern(pattern));
+            }
+            else
+            {
+                sql.Append($"AND (a.{n.PerformerKey} = @0 OR (a.{n.PerformerKey} IS NULL AND a.{n.PerformerId} = @1))", key, id);
+            }
+        }
+
+        if (filter.Search is { } search)
+        {
+            sql.Append(
+                $"AND (a.{n.EventType} LIKE @0 ESCAPE '{CoreSql.LikeEscape}' OR a.{n.EventDetails} LIKE @0 ESCAPE '{CoreSql.LikeEscape}')",
+                CoreSql.ContainsPattern(search));
+        }
+
+        if (!count)
+        {
+            var direction = filter.Ascending ? "ASC" : "DESC";
+            sql.Append($"ORDER BY a.{n.Date} {direction}, a.{n.Id} {direction}");
+        }
+
+        return sql;
+    }
+
+    public static Sql<ISqlContext> ClaimedById(ISqlContext ctx, int id, string prefix)
+    {
+        Names n = new(ctx.SqlSyntax);
+        return ctx.Sql(Columns(n)).Append($"FROM {n.Table} a")
+            .Append($"WHERE a.{n.Id} = @0", id)
+            .Append($"AND a.{n.EventType} LIKE @0 ESCAPE '{CoreSql.LikeEscape}'", PrefixPattern(prefix));
+    }
+
     public static Sql<ISqlContext> ById(ISqlContext ctx, int id, IReadOnlyCollection<string> excludedPrefixes)
     {
         Names n = new(ctx.SqlSyntax);

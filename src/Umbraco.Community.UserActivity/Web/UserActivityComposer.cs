@@ -13,7 +13,13 @@ using Umbraco.Community.UserActivity.Export;
 using Umbraco.Community.UserActivity.Query;
 using Umbraco.Community.UserActivity.Security;
 using Umbraco.Community.UserActivity.Sources;
+using Umbraco.Community.UserActivity.Sources.Adapters;
+using Umbraco.Community.UserActivity.Sources.ArchivedUsers;
+using Umbraco.Community.UserActivity.Sources.Adapters.AI;
+using Umbraco.Community.UserActivity.Sources.Adapters.USync;
+using Umbraco.Community.UserActivity.Sources.Automate;
 using Umbraco.Community.UserActivity.Sources.Core;
+using Umbraco.Community.UserActivity.Sources.Forms;
 using Umbraco.Community.UserActivity.Web.OpenApi;
 using Microsoft.AspNetCore.Authorization;
 
@@ -29,10 +35,16 @@ public sealed class UserActivityComposer : IComposer
             .ValidateOnStart();
         builder.Services.AddSingleton<IValidateOptions<UserActivityOptions>, UserActivityOptionsValidator>();
 
-        builder.UserActivitySources().Append<CoreSource>();
-        builder.Services.AddSingleton(sp => new CoreClaims(() => sp.GetRequiredService<UserActivitySourceCollection>()
-            .Where(s => s is not CoreSource && s.IsAvailable)
-            .OfType<IClaimsCoreAuditRows>()));
+        builder.UserActivitySources().Append<CoreSource>().Append<AutomateSource>().Append<FormsSource>().Append<ArchivedUsersSource>();
+
+        // Runtime adapters (design 3.2): each guard checks by name and reflection, then registers its source only if
+        // the integration is installed and still has every member the adapter calls.
+        var adapters = new AdapterRegistrations();
+        adapters.Add(AIGuard.TryRegister(builder));
+        adapters.Add(USyncGuard.TryRegister(builder));
+        builder.Services.AddSingleton(adapters);
+        builder.Services.AddSingleton<SourceFailures>();
+        AddCoreClaims(builder.Services);
         builder.Services.AddSingleton<SourceAvailability>();
         builder.Services.AddTransient(sp => new UserIdentityResolver(
             sp.GetRequiredService<IUserService>(), sp.GetRequiredService<AppCaches>().RequestCache));
@@ -54,4 +66,7 @@ public sealed class UserActivityComposer : IComposer
 
         builder.AddNotificationHandler<UmbracoApplicationStartingNotification, UserActivityStartupCheck>();
     }
+
+    internal static void AddCoreClaims(IServiceCollection services)
+        => services.AddSingleton(sp => CoreClaims.From(() => sp.GetRequiredService<UserActivitySourceCollection>()));
 }
