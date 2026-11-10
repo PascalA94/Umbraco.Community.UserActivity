@@ -46,7 +46,7 @@ Pascal commits once per milestone (the "Milestone commit" block at the end). The
 
 - [x] Task 26: `docs: privacy, sources and limits`
 - [x] Task 27: `docs: presentation, Marketplace and publish workflow` (Step 6, reserve the NuGet ID and add Trusted Publishing, is Pascal's)
-- [x] Task 28 Step 1: pre-push checks clean (Steps 2-3, push, PR and release-checks, are Pascal's; CI has not run)
+- [x] Task 28 Step 1: pre-push checks clean (push and PR #3 done; CI already green on PRs #1 and #2; release-checks still to run)
 - [x] Task 29: `fix: final review findings` (qa-reviewer pass with changes, security-analyst yes with conditions; no Critical)
 - [x] Task 30 Steps 1-6: `docs: acceptance results for 0.1` (both lines; Step 7, the release, is Pascal's)
 
@@ -54,7 +54,7 @@ Pascal commits once per milestone (the "Milestone commit" block at the end). The
 
 Milestone: **M4 done** (Tasks 26-30): 0.1 is built, reviewed and exercised on both lines. Unit 247, integration 122, adapter 32 on 17 and on 18; Vitest 46; Playwright 7 passed per line.
 Reviews: qa-reviewer pass with changes, security-analyst yes with conditions, no Critical. QA-F1, QA-F2, QA-F3 (profile route, Pascal's choice), QA-F4, SEC-F1 and SEC-F5 fixed; the Minors deferred are in HANDOVER.md.
-**CI has not run on GitHub.** Next: Pascal's steps in HANDOVER.md "Your to-do list" (first CI run, NuGet ID and Trusted Publishing, tag `release/0.0`).
+CI runs on every PR (green for #1 and #2). Next: Pascal's steps in HANDOVER.md "Your to-do list" (release checks, NuGet ID and Trusted Publishing, tag `release/0.0`).
 Next task: **Task 31** (M5, the recorder), **on Sonnet** (`--model sonnet`), and only after 0.1 is released.
 
 ## Milestone commit
