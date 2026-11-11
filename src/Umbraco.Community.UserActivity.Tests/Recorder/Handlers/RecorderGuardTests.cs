@@ -132,7 +132,7 @@ public class RecorderGuardTests
         foreach (var type in new[]
         {
             "Notifications.WorkflowSettingsSavedNotification", "ApprovalGroups.Notifications.WorkflowGroupSavedNotification",
-            "ApprovalGroups.Notifications.WorkflowGroupDeletedNotification", "Notifications.WorkflowInstanceCreatedNotification",
+            "ApprovalGroups.Notifications.WorkflowGroupDeletedNotification", "ApprovalGroups.Notifications.WorkflowGroupCreatedNotification", "Notifications.WorkflowInstanceCreatedNotification",
             "Notifications.WorkflowInstanceApprovedNotification", "Notifications.WorkflowInstanceRejectedNotification",
             "Notifications.WorkflowInstanceCompletedNotification",
         })

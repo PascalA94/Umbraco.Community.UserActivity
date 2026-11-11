@@ -79,14 +79,20 @@ public class WorkflowHandlerTests
         Assert.Equal(AdapterState.Registered, harness.Result.State);
         Assert.Equal([RecorderSources.Workflow], harness.Registry.Names);
         Assert.Equal(1, harness.HandlerCount<WorkflowSettingsSavedNotification>());
+        Assert.Equal(1, harness.HandlerCount<WorkflowGroupCreatedNotification>());
         Assert.Equal(1, harness.HandlerCount<WorkflowGroupSavedNotification>());
         Assert.Equal(1, harness.HandlerCount<WorkflowGroupDeletedNotification>());
         Assert.Equal(1, harness.HandlerCount<WorkflowInstanceCreatedNotification>());
         Assert.Equal(1, harness.HandlerCount<WorkflowInstanceApprovedNotification>());
         Assert.Equal(1, harness.HandlerCount<WorkflowInstanceRejectedNotification>());
         Assert.Equal(1, harness.HandlerCount<WorkflowInstanceCompletedNotification>());
+        Assert.Equal(1, harness.HandlerCount<WorkflowNodeConfigDeletedNotification>());
+        Assert.Equal(1, harness.HandlerCount<WorkflowContentTypeConfigDeletedNotification>());
 #if UMBRACO_18
         Assert.Equal(1, harness.HandlerCount<WorkflowConfigSavedNotification>());
+#else
+        Assert.Equal(1, harness.HandlerCount<WorkflowNodeConfigSavedNotification>());
+        Assert.Equal(1, harness.HandlerCount<WorkflowContentTypeConfigSavedNotification>());
 #endif
     }
 
@@ -106,6 +112,69 @@ public class WorkflowHandlerTests
         Assert.Equal(HandlerHarness.WrenKey, row.UserKey);
         Assert.Equal("Wren Writer", row.UserName);
     }
+
+    // Found in the real-package exercise: creating a group raises WorkflowGroupCreatedNotification only; Saved fires on edit.
+    [Fact]
+    public void GroupCreated_IsExactlyOneRow_NamedAfterTheGroup_AndNeverItsEmail()
+    {
+        HandlerHarness harness = Harness();
+
+        harness.Publish(new WorkflowGroupCreatedNotification(Group("New reviewers"), Messages));
+
+        RecorderEntry row = Assert.Single(harness.Written);
+        Assert.Equal(Categories.Created, row.Category);
+        Assert.Equal(nameof(WorkflowGroupCreatedNotification), row.RawType);
+        Assert.Equal("workflowConfig", row.EntityType);
+        Assert.Equal(GroupKey.ToString(), row.EntityKey);
+        Assert.Equal("New reviewers", row.EntityName);
+        Assert.Equal(HandlerHarness.WrenKey, row.UserKey);
+        Assert.Null(row.Details);
+    }
+
+    // Found in the real-package exercise: 17 raised these on every approval-flow save and nothing was recorded, and
+    // neither line recorded a config delete.
+    [Fact]
+    public void ConfigDeleted_IsOneRowEach_ForNodeAndDocumentTypeFlows_WithNoDetails()
+    {
+        HandlerHarness harness = Harness();
+
+        harness.Publish(new WorkflowNodeConfigDeletedNotification(Substitute.For<IWorkflowConfig>(), Messages));
+        harness.Publish(new WorkflowContentTypeConfigDeletedNotification(Substitute.For<IWorkflowConfig>(), Messages));
+
+        Assert.Equal(
+            [nameof(WorkflowNodeConfigDeletedNotification), nameof(WorkflowContentTypeConfigDeletedNotification)],
+            harness.Written.Select(r => r.RawType));
+        Assert.All(harness.Written, row =>
+        {
+            Assert.Equal(Categories.Deleted, row.Category);
+            Assert.Equal("workflowConfig", row.EntityType);
+            Assert.Equal("Workflow configuration", row.EntityName);
+            Assert.Equal(HandlerHarness.WrenKey, row.UserKey);
+            Assert.Null(row.Details);
+        });
+    }
+
+#if UMBRACO_17
+    [Fact]
+    public void ConfigSaved_On17_IsOneRowEach_ForNodeAndDocumentTypeFlows_WithNoDetails()
+    {
+        HandlerHarness harness = Harness();
+
+        harness.Publish(new WorkflowNodeConfigSavedNotification(Substitute.For<IWorkflowConfig>(), Messages));
+        harness.Publish(new WorkflowContentTypeConfigSavedNotification(Substitute.For<IWorkflowConfig>(), Messages));
+
+        Assert.Equal(
+            [nameof(WorkflowNodeConfigSavedNotification), nameof(WorkflowContentTypeConfigSavedNotification)],
+            harness.Written.Select(r => r.RawType));
+        Assert.All(harness.Written, row =>
+        {
+            Assert.Equal(Categories.Saved, row.Category);
+            Assert.Equal("workflowConfig", row.EntityType);
+            Assert.Equal("Workflow configuration", row.EntityName);
+            Assert.Null(row.Details);
+        });
+    }
+#endif
 
     [Fact]
     public void GroupSaved_AndDeleted_AreExactlyOneRowEach()

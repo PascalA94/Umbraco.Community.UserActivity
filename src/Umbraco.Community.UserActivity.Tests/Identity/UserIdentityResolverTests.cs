@@ -150,6 +150,36 @@ public class UserIdentityResolverTests
         Assert.Contains("id 42", display.Label);
     }
 
+    // QA-F7: uSync stores only the username, so its actors carry neither a key nor an id.
+    [Fact]
+    public void ActorRef_UserActorWithOnlyAStoredName_IsLookedUpByUsername()
+    {
+        var actor = new ActivityActor(ActorKind.User, null, null, "Wren.Writer@Example.test", null);
+
+        Assert.Equal(ActorRef.ForUsername("wren.writer@example.test"), ActorRef.For(actor));
+    }
+
+    [Fact]
+    public void ActorRef_SystemOrAutomationActorWithAStoredName_IsNotLookedUp()
+    {
+        Assert.Null(ActorRef.For(new ActivityActor(ActorKind.System, null, null, "uSync (no user)", null)));
+        Assert.Null(ActorRef.For(new ActivityActor(ActorKind.Automation, null, null, "Nightly import", null)));
+    }
+
+    [Fact]
+    public async Task Compose_UsernameOnlyActor_ResolvesToTheUserWithAKey()
+    {
+        IUser wren = AddUser(7, "Wren Writer");
+        var actor = new ActivityActor(ActorKind.User, null, null, wren.Username, null);
+        IReadOnlyDictionary<ActorRef, ActorDisplay> result = await Resolver().ResolveManyAsync([ActorRef.For(actor)!.Value], CancellationToken.None);
+
+        ActorDisplay display = ActorDisplay.Compose(actor, result);
+
+        Assert.Equal(ActorKind.User, display.Kind);
+        Assert.Equal(wren.Key, display.UserKey);
+        Assert.Equal("Wren Writer", display.Name);
+    }
+
     [Fact]
     public async Task Resolver_RenamedUser_ShowsCurrentName()
     {

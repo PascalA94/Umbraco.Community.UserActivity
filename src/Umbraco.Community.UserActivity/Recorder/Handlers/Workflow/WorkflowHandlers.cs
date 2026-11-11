@@ -26,6 +26,10 @@ internal sealed class WorkflowHandlers
     public void OnSettingsSaved(WorkflowSettingsSavedNotification notification)
         => _context.Record(RecorderSources.Workflow, () => [Config(Categories.Saved, nameof(WorkflowSettingsSavedNotification), null, "Workflow settings")]);
 
+    // Creating a group raises only Created (Saved fires on edit), so without this handler new groups were never recorded.
+    public void OnGroupCreated(WorkflowGroupCreatedNotification notification)
+        => _context.Record(RecorderSources.Workflow, () => [Config(Categories.Created, nameof(WorkflowGroupCreatedNotification), notification.CreatedEntity.Unique.ToString(), notification.CreatedEntity.Name)]);
+
     public void OnGroupSaved(WorkflowGroupSavedNotification notification)
         => _context.Record(RecorderSources.Workflow, () => RecorderDetails.Capped(
             notification.SavedEntities,
@@ -41,6 +45,22 @@ internal sealed class WorkflowHandlers
 #if UMBRACO_18
     public void OnConfigSaved(WorkflowConfigSavedNotification notification)
         => _context.Record(RecorderSources.Workflow, () => [Config(Categories.Saved, nameof(WorkflowConfigSavedNotification), null, "Workflow configuration")]);
+#endif
+
+    // Config notifications carry the flow itself (groups and thresholds); only the fact of the change is recorded.
+    public void OnNodeConfigDeleted(WorkflowNodeConfigDeletedNotification notification)
+        => _context.Record(RecorderSources.Workflow, () => [Config(Categories.Deleted, nameof(WorkflowNodeConfigDeletedNotification), null, "Workflow configuration")]);
+
+    public void OnContentTypeConfigDeleted(WorkflowContentTypeConfigDeletedNotification notification)
+        => _context.Record(RecorderSources.Workflow, () => [Config(Categories.Deleted, nameof(WorkflowContentTypeConfigDeletedNotification), null, "Workflow configuration")]);
+
+#if UMBRACO_17
+    // 17 has no WorkflowConfigSavedNotification; these two are its equivalents.
+    public void OnNodeConfigSaved(WorkflowNodeConfigSavedNotification notification)
+        => _context.Record(RecorderSources.Workflow, () => [Config(Categories.Saved, nameof(WorkflowNodeConfigSavedNotification), null, "Workflow configuration")]);
+
+    public void OnContentTypeConfigSaved(WorkflowContentTypeConfigSavedNotification notification)
+        => _context.Record(RecorderSources.Workflow, () => [Config(Categories.Saved, nameof(WorkflowContentTypeConfigSavedNotification), null, "Workflow configuration")]);
 #endif
 
     public void OnInstanceCreated(WorkflowInstanceCreatedNotification notification)

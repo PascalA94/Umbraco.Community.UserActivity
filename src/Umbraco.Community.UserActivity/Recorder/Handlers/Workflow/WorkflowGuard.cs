@@ -30,6 +30,8 @@ internal static class WorkflowGuard
     internal static IReadOnlyList<MemberSpec> Members { get; } =
     [
         MemberSpec.Type(Core + "Notifications.WorkflowSettingsSavedNotification"),
+        MemberSpec.Type(Core + "ApprovalGroups.Notifications.WorkflowGroupCreatedNotification"),
+        MemberSpec.Property(Core + "ApprovalGroups.Notifications.WorkflowGroupCreatedNotification", "CreatedEntity"),
         MemberSpec.Type(Core + "ApprovalGroups.Notifications.WorkflowGroupSavedNotification"),
         MemberSpec.Property(Core + "ApprovalGroups.Notifications.WorkflowGroupSavedNotification", "SavedEntities"),
         MemberSpec.Type(Core + "ApprovalGroups.Notifications.WorkflowGroupDeletedNotification"),
@@ -44,8 +46,13 @@ internal static class WorkflowGuard
         MemberSpec.Type(Core + "Notifications.WorkflowInstanceCompletedNotification"),
         MemberSpec.Property(Core + "Notifications.WorkflowInstanceCompletedNotification", "WorkflowType"),
         MemberSpec.Property(Instance, "WorkflowType"),
+        MemberSpec.Type(Core + "ApprovalGroups.Notifications.WorkflowNodeConfigDeletedNotification"),
+        MemberSpec.Type(Core + "ApprovalGroups.Notifications.WorkflowContentTypeConfigDeletedNotification"),
 #if UMBRACO_18
         MemberSpec.Type(Core + "ApprovalGroups.Notifications.WorkflowConfigSavedNotification"),
+#else
+        MemberSpec.Type(Core + "ApprovalGroups.Notifications.WorkflowNodeConfigSavedNotification"),
+        MemberSpec.Type(Core + "ApprovalGroups.Notifications.WorkflowContentTypeConfigSavedNotification"),
 #endif
     ];
 
@@ -72,14 +79,21 @@ internal static class WorkflowGuard
     {
         builder.Services
             .AddRecorderHandler<WorkflowSettingsSavedNotification, WorkflowHandlers>(h => h.OnSettingsSaved)
+            .AddRecorderHandler<WorkflowGroupCreatedNotification, WorkflowHandlers>(h => h.OnGroupCreated)
             .AddRecorderHandler<WorkflowGroupSavedNotification, WorkflowHandlers>(h => h.OnGroupSaved)
             .AddRecorderHandler<WorkflowGroupDeletedNotification, WorkflowHandlers>(h => h.OnGroupDeleted)
             .AddRecorderHandler<WorkflowInstanceCreatedNotification, WorkflowHandlers>(h => h.OnInstanceCreated)
             .AddRecorderHandler<WorkflowInstanceApprovedNotification, WorkflowHandlers>(h => h.OnInstanceApproved)
             .AddRecorderHandler<WorkflowInstanceRejectedNotification, WorkflowHandlers>(h => h.OnInstanceRejected)
-            .AddRecorderHandler<WorkflowInstanceCompletedNotification, WorkflowHandlers>(h => h.OnInstanceCompleted);
+            .AddRecorderHandler<WorkflowInstanceCompletedNotification, WorkflowHandlers>(h => h.OnInstanceCompleted)
+            .AddRecorderHandler<WorkflowNodeConfigDeletedNotification, WorkflowHandlers>(h => h.OnNodeConfigDeleted)
+            .AddRecorderHandler<WorkflowContentTypeConfigDeletedNotification, WorkflowHandlers>(h => h.OnContentTypeConfigDeleted);
 #if UMBRACO_18
         builder.Services.AddRecorderHandler<WorkflowConfigSavedNotification, WorkflowHandlers>(h => h.OnConfigSaved);
+#else
+        builder.Services
+            .AddRecorderHandler<WorkflowNodeConfigSavedNotification, WorkflowHandlers>(h => h.OnNodeConfigSaved)
+            .AddRecorderHandler<WorkflowContentTypeConfigSavedNotification, WorkflowHandlers>(h => h.OnContentTypeConfigSaved);
 #endif
     }
 }
