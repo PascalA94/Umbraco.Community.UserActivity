@@ -49,7 +49,9 @@ Verdicts, summarised (the full text stays in this session's reports; saved priva
 | `bash build/check-xss.sh` | exit 0 | |
 | `UmbracoMajor=<line> bash build/check-vulnerable.sh` (security pass) | clean | clean |
 
-**Not verified in M5** (all go to Task 36 Step 1): the SQL Server run of the recorder tests; the recorder job under a real scheduler; the backoffice user for Skybrud add and edit (S4 saw it only for delete); which Workflow approved, rejected or completed notification fires per approval shape; whether UrlTracker or Skybrud raise notifications from non-backoffice triggers; no Playwright e2e was run (the only UI change is one hint string, covered by Vitest); `python3 ~/.claude/lib/qa.py plan --run` was not run.
+**Not verified in M5** (all go to Task 36 Step 1): the recorder job under a real scheduler; the backoffice user for Skybrud add and edit (S4 saw it only for delete); which Workflow approved, rejected or completed notification fires per approval shape; whether UrlTracker or Skybrud raise notifications from non-backoffice triggers; no Playwright e2e was run (the only UI change is one hint string, covered by Vitest); `python3 ~/.claude/lib/qa.py plan` reports "QA is not configured on origin/main; nothing runs", so there was nothing to run.
+
+**Task 36 Step 1, partial (2026-11-11):** the SQL Server run passed on both lines in a throwaway container: unit 307 / 303, adapter 72 / 62, integration 135 passed and 1 skipped of 136 (17 / 18). The skipped test was not identified; check the test output once. Not done: the demo exercise with CSP Manager, Skybrud, UrlTracker and Workflow (the demo references none of them), the job under a real scheduler, and the start-up log and "Kept forever" hint on a running demo. Step 2 is yours: bump `PackageMinor` to 1, run `release-checks.yml`, tag `release/1.0`, `gh release create` per line (18 as Latest).
 
 ### Your to-do list for the recorder minor
 

@@ -92,3 +92,16 @@ git commit -m "feat: recorder for CSP Manager, Workflow and redirects"
 git log -1 --oneline
 ```
 
+## Paused here (2026-11-11, Task 36 Step 1 partial)
+
+SQL Server run passed on both lines (integration 135 passed, 1 skipped). The demo exercise with third-party packages was not done (Pascal chose the partial option). Next: Pascal's Step 2 (bump `PackageMinor` to 1, release checks, tag `release/1.0`). Nothing is left in the plan after Task 36.
+
+## Milestone commit (Task 36 notes)
+
+```bash
+git status --short          # check: only HANDOVER.md and COMMITS-TODO.md changed
+git add -A
+git commit -m "docs: record recorder acceptance results"
+git log -1 --oneline
+```
+
