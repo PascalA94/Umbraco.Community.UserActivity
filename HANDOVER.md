@@ -1,8 +1,8 @@
 # Handover
 
-**State (2026-11-10): 0.1 is released; M5 (the recorder, 17.1.0 / 18.1.0) is built and reviewed but not committed or released.** 17.0.0 and 18.0.0 are on nuget.org from tag `release/0.0`. The M5 work is in the working tree: run the "Milestone commit" block at the end of `COMMITS-TODO.md`. **Next: Task 36** (exercise the recorder on the demo sites, then you bump `PackageMinor` to 1, run release checks and tag `release/1.0`).
+**State (2026-11-11): 0.1 and the recorder minor are released.** 17.0.0 / 18.0.0 are from tag `release/0.0`; 17.1.0 / 18.1.0 are from tag `release/1.0` (`a3a9003`, publish run succeeded, GitHub release marked Latest; confirm both versions are listed on nuget.org). **Next (optional patch, 17.1.1 / 18.1.1):** add CSP Manager, Skybrud Redirects, UrlTracker (17) and Workflow to the demo and exercise the recorder for real; the unverified items are listed below under Task 36.
 
-## M5: the recorder (built, not released)
+## M5: the recorder (released as 17.1.0 / 18.1.0)
 
 - **What it is:** table `communityUserActivityEvent` (created by a package migration plan at start-up), a writer that never throws into another package's save, a `recorder` source, and a daily distributed retention job.
 - **Handlers** (name-based guard, reflection probe, compile-only references, nuspec still Umbraco-only):

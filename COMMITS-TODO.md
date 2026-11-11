@@ -92,9 +92,9 @@ git commit -m "feat: recorder for CSP Manager, Workflow and redirects"
 git log -1 --oneline
 ```
 
-## Paused here (2026-11-11, Task 36 Step 1 partial)
+## Paused here (2026-11-11, recorder minor released)
 
-SQL Server run passed on both lines (integration 135 passed, 1 skipped). The demo exercise with third-party packages was not done (Pascal chose the partial option). Next: Pascal's Step 2 (bump `PackageMinor` to 1, release checks, tag `release/1.0`). Nothing is left in the plan after Task 36.
+SQL Server run passed on both lines (integration 135 passed, 1 skipped). The demo exercise with third-party packages was not done (Pascal chose the partial option). Task 36 Step 2 done: PR #9 merged, release-checks green, tag `release/1.0`, publish succeeded, GitHub release created. Nothing is left in the plan. Optional next: a patch milestone to exercise the recorder against the real third-party packages in the demo (see HANDOVER.md).
 
 ## Milestone commit (Task 36 notes)
 
