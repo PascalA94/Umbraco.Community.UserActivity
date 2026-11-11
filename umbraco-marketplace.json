@@ -31,6 +31,10 @@
     {
       "ImageUrl": "https://raw.githubusercontent.com/PascalA94/Umbraco.Community.UserActivity/main/assets/screenshots/screenshot-04-your-activity.png",
       "Caption": "Your own activity, opened from your profile."
+    },
+    {
+      "ImageUrl": "https://raw.githubusercontent.com/PascalA94/Umbraco.Community.UserActivity/main/assets/screenshots/screenshot-05-recorder.png",
+      "Caption": "Recorded changes: who saved a CSP policy, added or removed a redirect, or changed a Workflow setting."
     }
   ],
   "Tags": [

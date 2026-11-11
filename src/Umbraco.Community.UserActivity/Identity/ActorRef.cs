@@ -26,9 +26,15 @@ public readonly record struct ActorRef(ActorRefKind Kind, int Id, Guid Key, stri
 
     public static ActorRef ForUsername(string username) => new(ActorRefKind.Username, 0, Guid.Empty, Normalise(username));
 
-    /// <summary>The identity to look up for an actor: key first, then id; null when the actor carries neither.</summary>
+    /// <summary>
+    /// The identity to look up for an actor: key first, then id, then (for a person with only a stored name, which is all
+    /// uSync keeps) the username; null otherwise. System and automation actors are never looked up by their label.
+    /// </summary>
     public static ActorRef? For(ActivityActor actor)
-        => actor.UserKey is { } key ? ForKey(key) : actor.UserId is { } id ? ForId(id) : null;
+        => actor.UserKey is { } key ? ForKey(key)
+            : actor.UserId is { } id ? ForId(id)
+            : actor.Kind is ActorKind.User or ActorKind.ServiceAccount && !string.IsNullOrWhiteSpace(actor.StoredName) ? ForUsername(actor.StoredName)
+            : null;
 
     public override string ToString() => Kind switch
     {

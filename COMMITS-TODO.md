@@ -105,3 +105,17 @@ git commit -m "docs: record recorder acceptance results"
 git log -1 --oneline
 ```
 
+
+## Paused here (2026-11-11, real-package exercise and patch candidate)
+
+Task 36 follow-up done: the recorder was exercised against the real CSP Manager, Skybrud Redirects, UrlTracker (17) and Workflow on both lines, and the open questions are answered in HANDOVER.md "Real-package exercise". One bug found and fixed under tests (Workflow group creation was not recorded). Also in the working tree: recorder entity-type labels, the uSync user link (QA-F7), a recorder screenshot and rebuilt `wwwroot/`. `PackagePatch` bumped to 1 (17.1.1 / 18.1.1) after you chose to release it; `check-release-version.sh release/1.1` and `check-vulnerable.sh` (both lines) pass. Tag will be `release/1.1`.
+Workflow config saves (17) and deletes (both lines) are now recorded too. Left as is: Workflow cancel and resubmit are not recorded, and instance rows have no item name. Nothing is committed. Local-only helpers stay untracked (`demo/RecorderLocal/`, `tests/e2e/local/`, `tests/e2e/local.config.ts`, listed in `.git/info/exclude`).
+
+## Milestone commit (real-package exercise and patch candidate)
+
+```bash
+git status --short          # check: only README.md, HANDOVER.md, COMMITS-TODO.md, Directory.Build.props, umbraco-marketplace.json, assets/screenshots/screenshot-05-recorder.png and src/ changed or added (Workflow handler, ActorRef, en.ts, tests, regenerated wwwroot chunks); no demo/RecorderLocal, tests/e2e/local, secrets, bin/obj
+git add -A
+git commit -m "fix: record Workflow group creation and config changes, label recorder item types, link uSync users"
+git log -1 --oneline
+```

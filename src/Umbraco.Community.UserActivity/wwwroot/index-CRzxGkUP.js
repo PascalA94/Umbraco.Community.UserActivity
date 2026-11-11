@@ -4,7 +4,7 @@ const c = "UserActivity.Modal.MyActivity", t = "user-activity-root", i = "UserAc
     alias: "UserActivity.Localization.En",
     name: "User Activity English",
     meta: { culture: "en" },
-    js: () => import("./en-Dno6wYm7.js")
+    js: () => import("./en-BzP2d8Uy.js")
   },
   {
     // en-GB users get the same copy; the package ships English only in 0.1 (design 6.5).
@@ -12,7 +12,7 @@ const c = "UserActivity.Modal.MyActivity", t = "user-activity-root", i = "UserAc
     alias: "UserActivity.Localization.EnGb",
     name: "User Activity English (UK)",
     meta: { culture: "en-gb" },
-    js: () => import("./en-Dno6wYm7.js")
+    js: () => import("./en-BzP2d8Uy.js")
   },
   {
     type: "menuItem",
@@ -58,7 +58,7 @@ const c = "UserActivity.Modal.MyActivity", t = "user-activity-root", i = "UserAc
     name: "User Activity Profile App",
     // Core's profile apps use 100-1000; a low weight puts this box last, after core's own.
     weight: 10,
-    element: () => import("./my-activity-profile-app.element-BHK3ON9Q.js"),
+    element: () => import("./my-activity-profile-app.element-CALh1mbY.js"),
     meta: { label: "#userActivity_myActivity", pathname: "activity" }
   },
   {

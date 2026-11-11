@@ -3,7 +3,7 @@ import { UmbLitElement as f } from "@umbraco-cms/backoffice/lit-element";
 import { UmbModalToken as d, umbOpenModal as A } from "@umbraco-cms/backoffice/modal";
 import { UMB_CURRENT_USER_CONTEXT as b } from "@umbraco-cms/backoffice/current-user";
 import { a as M, p as C } from "./can-view.condition-7gAvEVqZ.js";
-import { M as E } from "./index-DsqurCFA.js";
+import { M as E } from "./index-CRzxGkUP.js";
 const T = new d(E, {
   modal: { type: "sidebar", size: "full" }
 });
