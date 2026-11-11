@@ -51,7 +51,7 @@ Verdicts, summarised (the full text stays in this session's reports; saved priva
 
 ### Real-package exercise (2026-11-11, released as 17.1.1 / 18.1.1)
 
-Local only (untracked): `demo/RecorderLocal/` (a copy of the demo with CSP Manager 17.0.5 / 18.1.0, Skybrud Redirects 17.0.5 / 18.0.0, Workflow 17.5.4 / 18.2.5, and UrlTracker 17.1.0 on 17) and `tests/e2e/local/` Playwright scripts, all listed in `.git/info/exclude`. In that demo Wren is seeded into Administrators so she can reach Settings; none of it is in the package. Wren made the changes through each package's own API with her own session token, Sam and Ed approved or rejected Workflow items, and Sam read the `recorder` rows. Everything ran over HTTPS on a separate SQLite database per line.
+Method (the local helpers were deleted afterwards; the recipe to repeat it is under "Repeating the exercise" below). Wren made the changes through each package's own API with her own session token, Sam and Ed approved or rejected Workflow items, and Sam read the `recorder` rows. Everything ran over HTTPS on a separate SQLite database per line.
 
 **Answers**
 - **Skybrud add and edit under a backoffice user:** yes. `RedirectAddedNotification`, `RedirectSavedNotification` and `RedirectDeletedNotification` all carried Wren, on both lines. The `?token=...` query string was cut from the stored name.
@@ -79,10 +79,26 @@ Local only (untracked): `demo/RecorderLocal/` (a copy of the demo with CSP Manag
 - Workflow's own backoffice logs a SignalR 404 (`/umbraco/WorkflowHub`) in the browser console in the demo; it is Workflow's, not ours. No other console errors or failed requests, and no warnings or errors from our code in the server logs.
 - The packages were driven through their APIs rather than their editors (UrlTracker's New redirect form was used once), so the recorder UI itself has only the screenshot and the empty-state hint check.
 
+### Repeating the exercise
+
+Nothing of this is committed, so to repeat it you rebuild a throwaway copy:
+- **Demo copy:** copy `demo/Umbraco.Community.UserActivity.DemoSite` to an untracked folder (add it to `.git/info/exclude`) and add `Umbraco.Community.CSPManager`, `Skybrud.Umbraco.Redirects`, `Umbraco.Workflow` and, on 17 only, `UrlTracker` to its csproj and `Directory.Packages.props` at the versions above. It reuses the demo's user secrets, so Sam, Wren and Ed keep their passwords; never print them. Run with `dotnet run --launch-profile Umbraco.Web.UI -p:UmbracoMajor=<line>` over HTTPS, one SQLite file per line (the demo's `Program.cs` already does this). Seed Wren into the Administrators group (in the copy only) so she can reach Settings.
+- **Driving it:** log in with the Playwright support in `tests/e2e/support/backoffice.ts`, copy the `authorization` header from the backoffice's own requests, and call the package APIs with it. Read the rows straight from the SQLite file (`communityUserActivityEvent`) to see raw types and the stored user.
+- **API docs:** on 17 each package publishes swagger at `/umbraco/swagger/<doc>/swagger.json` (`csp`, `default` for Skybrud, `url-tracker`, `workflow-management`, `user-activity`); 18 has none, so capture the request in the backoffice instead.
+- **Request shapes that were not obvious:**
+  - CSP: `POST /umbraco/csp/api/v1/Definitions/save` with the definition from `GET /umbraco/csp/api/v1/Definitions`.
+  - Skybrud: `PUT /umbraco/skybrud/redirects` to add (needs `rootNodeKey` and a destination object), `PATCH .../{key}` to edit, `DELETE .../{key}`.
+  - UrlTracker (17): `POST /umbraco/management/api/v1/UrlTracker/Redirects` with strategy GUIDs: source URL `6406121c-766c-49eb-a510-8d979ea27ff9`, target URL `603c97d6-57c8-442f-8631-a8fae383fbf5`, target content `e9e3a702-54f7-42ae-aadd-5b04185da988`. Bulk delete takes a bare array of ids.
+  - Workflow: first set the setting `adminCanEdit` to true and make Wren the Workflow administrator (`PUT .../workflow/management/api/v1/settings`). The free licence allows 5 groups and approval threshold "One" only. Groups are `POST .../approval-group` (take the body from `.../approval-group/scaffold`).
+  - Workflow node flow, `PUT .../workflow/management/api/v1/config`: on 17 send `{ key, culture: "", entityType: "document", nodeId, permissions: [{ permission, name, approvalThreshold, icon, groupUnique, variations }] }` (the content `nodeId` is the integer id, 1057 for the first demo page); on 18 send `{ entityKey, entityType: "document", culture: "*", permissions: [{ groupIcon, groupUnique, approvalThreshold, permission, groupName, variations, variant: "*" }] }`. Then `POST .../action/initiate`, and `POST .../action/approve|reject|cancel` with `instanceGuid`; find the instance with `POST .../instance/active` (18 puts the content key in `entity.unique`).
+  - Scheduled publish with no user: save a rename, then `PUT .../document/{id}/publish` with `publishSchedules: [{ culture: null, schedule: { publishTime } }]` about 20 seconds ahead; the job runs within a minute.
+  - Retention job: insert old rows into `communityUserActivityEvent`, set the `UserActivityRecorderRetention` row in `umbracoDistributedJob` to an old `lastRun`, start with `UserActivity__Recorder__RetentionDays=1`; it runs within about 30 seconds of start-up.
+- **Side effects to expect:** running the real demo can write an install `Id` into the committed demo `appsettings.json`; revert it before committing.
+
 ### Your to-do list now
 
 1. Check that 17.1.1 and 18.1.1 are listed at https://www.nuget.org/packages/Umbraco.Community.UserActivity (indexing takes 10 to 30 minutes). The Marketplace picks the release up from the tag. The forum post is skipped by your standing choice.
-2. Delete the local real-package helpers when you no longer need them: `rm -rf demo/RecorderLocal tests/e2e/local tests/e2e/local.config.ts` (untracked, in `.git/info/exclude`).
+2. Nothing local to clean up: the real-package demo and scripts are deleted.
 3. Optional, not started: Workflow cancel and resubmit recording, an item name on Workflow instance rows, a live check of the two config-delete handlers (they are covered only by tests on Workflow's real types), and the Minors listed above.
 4. The earlier 0.1 to-do item (repo settings) is below.
 

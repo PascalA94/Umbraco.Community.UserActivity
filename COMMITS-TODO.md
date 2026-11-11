@@ -108,7 +108,7 @@ git log -1 --oneline
 
 ## Paused here (2026-11-11, 1.1 patch released)
 
-The real-package exercise and its patch are done and released: PR #11 merged (`28bf54c`), Release checks green, tag `release/1.1`, publish succeeded and the GitHub release "User Activity 18.1.1 / 17.1.1" is marked Latest. Nothing is left in the plan. Still to do by hand: confirm 17.1.1 and 18.1.1 on nuget.org, and delete the local helpers (`demo/RecorderLocal/`, `tests/e2e/local/`, `tests/e2e/local.config.ts`).
+The real-package exercise and its patch are done and released: PR #11 merged (`28bf54c`), Release checks green, tag `release/1.1`, publish succeeded and the GitHub release "User Activity 18.1.1 / 17.1.1" is marked Latest. Nothing is left in the plan. Still to do by hand: confirm 17.1.1 and 18.1.1 on nuget.org. The local real-package helpers are deleted; HANDOVER.md "Repeating the exercise" says how to rebuild them.
 Optional next: Workflow cancel and resubmit recording, an item name on Workflow instance rows, a live check of the config-delete handlers (see HANDOVER.md "Not verified / gaps left for you").
 
 ## Earlier milestone commit (real-package exercise, already done)
@@ -126,5 +126,14 @@ git log -1 --oneline
 git status --short          # check: only HANDOVER.md and COMMITS-TODO.md changed
 git add -A
 git commit -m "docs: record the 1.1 patch release"
+git log -1 --oneline
+```
+
+## Milestone commit (handover recipe)
+
+```bash
+git status --short          # check: only HANDOVER.md and COMMITS-TODO.md changed
+git add -A
+git commit -m "docs: add the recipe for repeating the real-package exercise"
 git log -1 --oneline
 ```
