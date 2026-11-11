@@ -68,7 +68,7 @@
   <PropertyGroup>
     <!-- 17.x and 18.x ship from one tag release/<PackageMinor>.<PackagePatch>[-suffix]; the major comes from the line.
          An empty suffix is a stable release (17.0.0 and 18.0.0); set it to alpha.1 for a prerelease. -->
-    <PackageMinor>0</PackageMinor>
+    <PackageMinor>1</PackageMinor>
     <PackagePatch>0</PackagePatch>
     <PackageVersionSuffix></PackageVersionSuffix>
     <UmbracoRange>[$(UmbracoFloor), $(UmbracoNextMajor))</UmbracoRange>
