@@ -1,6 +1,6 @@
 # Handover
 
-**State (2026-11-11): 0.1 and the recorder minor are released** (17.0.0 / 18.0.0 from tag `release/0.0`; 17.1.0 / 18.1.0 from tag `release/1.0`, `a3a9003`). **Uncommitted patch 17.1.1 / 18.1.1** (`PackagePatch` bumped to 1; tag `release/1.1` when you release): the real-package exercise found one recorder bug and the work added entity-type labels, the uSync user link and a recorder screenshot. See "Real-package exercise" below.
+**State (2026-11-11): 0.1, the recorder minor and the 1.1 patch are released.** 17.0.0 / 18.0.0 from tag `release/0.0`; 17.1.0 / 18.1.0 from `release/1.0`; **17.1.1 / 18.1.1 from `release/1.1`** (PR #11, `28bf54c`; PR checks and Release checks green, publish succeeded, one GitHub release marked Latest). The patch records Workflow group creation and config changes, adds recorder item-type labels, links uSync users and adds a recorder screenshot. Confirm the new versions are listed on nuget.org. Details are under "Real-package exercise" below.
 
 ## M5: the recorder (released as 17.1.0 / 18.1.0)
 
@@ -36,7 +36,7 @@ Verdicts, summarised (the full text stays in this session's reports; saved priva
   - QA-8: with the recorder switched off and `RetentionDays` 0, nothing reminds the owner that old rows are kept forever (the README says it).
   - QA-9: no host-level test that Umbraco's real event aggregator calls the factory-registered handlers, or that the distributed job host picks up `RetentionJob`; Workflow has no throwing-writer case.
   - L4: `check-vulnerable.sh` doesn't see the four `PackageDownload` compile references (exact-pinned; OSV found no advisories on 2026-11-10). Add them to the osv-scanner inputs.
-  - Recorder entity types now have English labels (patch candidate); other languages fall back to English.
+  - Recorder entity types now have English labels (17.1.1 / 18.1.1); other languages fall back to English.
   - From 0.1: the Minors listed below are unchanged.
 
 ### M5 test results (2026-11-10, final run)
@@ -49,7 +49,7 @@ Verdicts, summarised (the full text stays in this session's reports; saved priva
 | `bash build/check-xss.sh` | exit 0 | |
 | `UmbracoMajor=<line> bash build/check-vulnerable.sh` (security pass) | clean | clean |
 
-### Real-package exercise (2026-11-11, patch candidate)
+### Real-package exercise (2026-11-11, released as 17.1.1 / 18.1.1)
 
 Local only (untracked): `demo/RecorderLocal/` (a copy of the demo with CSP Manager 17.0.5 / 18.1.0, Skybrud Redirects 17.0.5 / 18.0.0, Workflow 17.5.4 / 18.2.5, and UrlTracker 17.1.0 on 17) and `tests/e2e/local/` Playwright scripts, all listed in `.git/info/exclude`. In that demo Wren is seeded into Administrators so she can reach Settings; none of it is in the package. Wren made the changes through each package's own API with her own session token, Sam and Ed approved or rejected Workflow items, and Sam read the `recorder` rows. Everything ran over HTTPS on a separate SQLite database per line.
 
@@ -62,10 +62,10 @@ Local only (untracked): `demo/RecorderLocal/` (a copy of the demo with CSP Manag
 - **CSP Manager removed:** the site boots, `recorder` still lists (the other packages remain) and the 33 stored rows are readable. With all four packages removed the site boots, no start-up line is logged and the `recorder` source is absent (`source=recorder` returns 400). 17 only.
 - **The skipped SQL Server test:** `Writer_FailureInsideACallersScope_LeavesTheCallersWorkCommitted` (`Assert.Ignore`: it needs a SQLite trigger; this is the deferred QA-5). `PerfSeed.Page1_And_Page100_Under2Seconds` is `[Explicit]` and not counted. SQL Server (throwaway container, generated password, since removed): integration 135 passed, 1 skipped of 136 on 17 and on 18.
 
-**Bug found and fixed (under tests, patch candidate)**
+**Bug found and fixed (under tests, released in 17.1.1 / 18.1.1)**
 - Creating a Workflow approval group was never recorded: Workflow raises `WorkflowGroupCreatedNotification` on create and `WorkflowGroupSavedNotification` only on edit. Fixed in `WorkflowGuard` (probe members and registration) and `WorkflowHandlers.OnGroupCreated`. Tests: `GroupCreated_IsExactlyOneRow_NamedAfterTheGroup_AndNeverItsEmail`, the handler-count assertion and the probe list; they failed first.
 
-**Also in this patch candidate**
+**Also in the patch**
 - English labels for `cspPolicy`, `workflowConfig`, `workflowInstance` and `redirect` (`Client/test/entity-type-labels.test.ts`, red first). `wwwroot/` rebuilt.
 - QA-F7: `ActorRef.For` now looks up a User or ServiceAccount actor that has only a stored name by username (only uSync produces these), so uSync rows link to the user. The adapter folders are untouched, so the optional-assembly rule holds. Tests in `UserIdentityResolverTests`, red first.
 - `screenshot-05-recorder.png` (synthetic users and items, no IPs), referenced in README "Recorder" and `umbraco-marketplace.json`. The README now says which Workflow instance events are recorded.
@@ -73,18 +73,18 @@ Local only (untracked): `demo/RecorderLocal/` (a copy of the demo with CSP Manag
 **Results:** `bash build/test.sh`: 17 unit 310, adapter 75, integration 136; 18 unit 306, adapter 64, integration 136. Vitest 59. `check-xss.sh` clean. Playwright against the real demo: 9 passed and 1 skipped (the screenshot spec needs `SCREENSHOTS=1`) on each line.
 
 **Not verified / gaps left for you**
-- **Workflow config (fixed in the patch candidate):** 17 now records `WorkflowNodeConfigSaved` and `WorkflowContentTypeConfigSaved`, and both lines record `WorkflowNodeConfigDeleted` and `WorkflowContentTypeConfigDeleted`, as one "Workflow configuration" row with no details. Tests failed first. Verified live: a 17 node-config save writes a row. The two delete notifications could not be triggered in the real package (emptying a flow raises Saved, and the document-type route returns 403 for Wren), so they are covered only by tests built on Workflow's real types.
+- **Workflow config (fixed in the patch):** 17 now records `WorkflowNodeConfigSaved` and `WorkflowContentTypeConfigSaved`, and both lines record `WorkflowNodeConfigDeleted` and `WorkflowContentTypeConfigDeleted`, as one "Workflow configuration" row with no details. Tests failed first. Verified live: a 17 node-config save writes a row. The two delete notifications could not be triggered in the real package (emptying a flow raises Saved, and the document-type route returns 403 for Wren), so they are covered only by tests built on Workflow's real types.
 - Workflow `Resubmitted` and `Cancelled` are not recorded, and Workflow instance rows have no item name (they show as "Workflow", action "Other").
 - Retention and CSP removal were checked on both lines (18: 5 old rows removed by the job; site boots without CSP Manager).
 - Workflow's own backoffice logs a SignalR 404 (`/umbraco/WorkflowHub`) in the browser console in the demo; it is Workflow's, not ours. No other console errors or failed requests, and no warnings or errors from our code in the server logs.
 - The packages were driven through their APIs rather than their editors (UrlTracker's New redirect form was used once), so the recorder UI itself has only the screenshot and the empty-state hint check.
 
-### Your to-do list for the recorder minor
+### Your to-do list now
 
-1. Run the Milestone commit block in `COMMITS-TODO.md`, push and open the PR; PR checks must go green.
-2. Start Task 36 in a fresh session (Step 1: exercise on both demo sites).
-3. Set `PackageMinor` to 1 in `Directory.Build.props`, run **Release checks** (SQL Server and e2e), tag `release/1.0`, then `gh release create` per line (18 as Latest). Expected: 17.1.0 and 18.1.0.
-4. The earlier 0.1 to-do items (nuget.org page check, repo settings) are below. The forum post is skipped by your standing choice.
+1. Check that 17.1.1 and 18.1.1 are listed at https://www.nuget.org/packages/Umbraco.Community.UserActivity (indexing takes 10 to 30 minutes). The Marketplace picks the release up from the tag. The forum post is skipped by your standing choice.
+2. Delete the local real-package helpers when you no longer need them: `rm -rf demo/RecorderLocal tests/e2e/local tests/e2e/local.config.ts` (untracked, in `.git/info/exclude`).
+3. Optional, not started: Workflow cancel and resubmit recording, an item name on Workflow instance rows, a live check of the two config-delete handlers (they are covered only by tests on Workflow's real types), and the Minors listed above.
+4. The earlier 0.1 to-do item (repo settings) is below.
 
 ---
 
@@ -140,7 +140,7 @@ Verdicts are saved privately: `reviews/m4-final-qa-review.md` and `reviews/m4-fi
 - SEC-F3: for self-view users, search still matches fields they can't see. It only covers their own rows; `performingDetails` isn't searched.
 - SEC-F4: no per-user rate limit on the list and detail endpoints.
 - SEC-F9: Automate scheduled and webhook `initiatedBy` shapes are still unobserved.
-- QA-F7: fixed in the patch candidate (the engine now looks up a username-only actor by username).
+- QA-F7: fixed in 17.1.1 / 18.1.1 (the engine now looks up a username-only actor by username).
 - QA-F8: the pager ignores the depth cap.
 - From M3: QA-2, QA-5, QA-6, QA-8, QA-9, QA-11 and QA-12, unchanged.
 - Seen in Task 30:
