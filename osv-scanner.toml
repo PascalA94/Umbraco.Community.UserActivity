@@ -4,6 +4,12 @@
 #
 # Add an entry only after checking the advisory really does not affect the floor (query OSV for the floor version),
 # and always give the reason. Never ignore an advisory that lists a version at or above the floor as affected.
+# The one exception is a dated entry for a dev-only npm build tool that never ships in the nupkg.
 [[IgnoredVulns]]
 id = "GHSA-6ffg-mjg7-585x"
 reason = "Affects Umbraco.Cms.Api.Management < 14.3.3 and 15.0.0-rc1 to 15.2.3 only; the package floors (17.8.0 and 18.3.0) are above 15.2.3."
+
+[[IgnoredVulns]]
+id = "GHSA-fc5q-39xc-vjpf"
+ignoreUntil = 2026-12-31
+reason = "picomatch 4.0.7 is a dev-only build dependency (Client/package-lock.json dev: true), never shipped in the nupkg; the glob patterns it sees are our own build config; no fixed version yet. Re-check by the ignoreUntil date."
