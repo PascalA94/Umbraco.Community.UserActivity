@@ -7,7 +7,7 @@ A per-user Activity tab and a global Activity view under Users, reading Umbraco'
 [![NuGet downloads](https://img.shields.io/nuget/dt/Umbraco.Community.UserActivity)](https://www.nuget.org/packages/Umbraco.Community.UserActivity)
 [![Licence: MIT](https://img.shields.io/badge/licence-MIT-blue)](https://github.com/PascalA94/Umbraco.Community.UserActivity/blob/main/LICENSE)
 
-A community package, not made or supported by Umbraco HQ. Requires Umbraco 17 (17.8.0 or later) or Umbraco 18 (18.3.0 or later), on .NET 10.
+A community package, not made or supported by Umbraco HQ. Requires Umbraco 17 (17.8.0 or later) or Umbraco 18 (18.3.0 or later), on .NET 10, or Umbraco 19 (19.0.0-rc1 or later, prerelease), on .NET 11. Built against Umbraco 19.0.0-rc1, not yet verified on 19 stable.
 
 ![The global Activity view under Users](https://raw.githubusercontent.com/PascalA94/Umbraco.Community.UserActivity/main/assets/screenshots/screenshot-01-global-view.png)
 
@@ -17,6 +17,7 @@ A community package, not made or supported by Umbraco HQ. Requires Umbraco 17 (1
 |---|---|
 | 17.x | 17 (17.8.0 or later) |
 | 18.x | 18 (18.3.0 or later) |
+| 19.0.0-rc.N | 19 (19.0.0-rc1 or later). Built against Umbraco 19.0.0-rc1, not yet verified on 19 stable. |
 
 ## Install
 
@@ -38,6 +39,7 @@ This package shows what your staff did in the backoffice. Treat what it shows li
   - Other users see nothing. With `AllowSelfView` on (off by default), a user who isn't an admin can see their own activity, and only that: from **Your activity** in their profile (select their avatar), or on their own tab if they have the Users section.
   - The tab is hidden from everyone else. The **Activity** menu item shows to anyone with the Users section, but the view answers "not allowed" unless they are a reader. The API checks every request.
 - **Watching the watchers.** `LogViews` is on by default. Opening a user's tab, opening the global view for one user or for everyone, opening an event and every export each write a row to Umbraco's audit table, with the viewer and the person viewed. Those rows show on the viewer's own tab. Views are throttled to one row per viewer, person and hour. The throttle is kept per server, so a load-balanced site can write one row per server.
+- **Cross-site requests (Umbraco 19).** On 19 the API refuses requests the browser marks as cross-site (`Sec-Fetch-Site` other than `same-origin` or `none`) with a 403, unless they come from the back-office host set in `Umbraco:CMS:Security:BackOfficeHost`. Requests without the header, such as API clients, are not affected. An empty header value may be treated as absent by the web host.
 - **Export is off by default.** Switch on `Export:Enabled` only if you need CSV files. A CSV leaves the backoffice, so it is outside these controls.
 - **Failed sign-ins.** Umbraco stores what someone typed as a username when a sign-in fails, and people sometimes type a password there. Readers see it in the event details. It is never put in an export.
 - **Query strings.** The global view and the Activity tab keep their filters in the URL, so search text and user keys can end up in proxy, CDN and monitoring logs. **Your activity** keeps them in the page only.
@@ -106,7 +108,7 @@ A source appears only when its package is installed. There are no licence checks
 | Umbraco Automate | `Automate` | Automation runs that changed CMS data. The person who started a run is the user and the service account is shown as "via". Scheduled and webhook runs show as automation | Kept by Umbraco (`umbracoAudit`) |
 | Umbraco Forms | `Forms` | Form create, save and delete, with the real user | Kept by Umbraco (`umbracoLog`) |
 | Umbraco.AI | `AI` | Umbraco.AI's audit log: which feature ran, for whom, and whether it worked. Never prompts, responses or error text | Umbraco.AI's own `RetentionDays`, 14 days by default. The view says how long it keeps |
-| uSync | `uSync` | Imports and exports from uSync's history (uSync 17.3.0 or later on Umbraco 17) | Files in uSync's temp folder, kept until that folder is cleared (which can happen on a deploy) or the history is cleared from uSync's dashboard |
+| uSync | `uSync` | Imports and exports from uSync's history (uSync 17.3.0 or later on Umbraco 17, 19.0.0-rc1 or later on Umbraco 19) | Files in uSync's temp folder, kept until that folder is cleared (which can happen on a deploy) or the history is cleared from uSync's dashboard |
 | Recorder | `Recorder` | Changes in CSP Manager, Workflow, Skybrud Redirects and UrlTracker, which keep no history of their own (see [Recorder](#recorder)) | Kept forever until you set `Recorder:RetentionDays` |
 | Archived Users | `ArchivedUsers` | Archive, unarchive, auto-archive, auto-disable, export and purge actions from Umbraco.Community.ArchivedUsers | Kept by Umbraco (`umbracoLog`) |
 
@@ -131,9 +133,10 @@ CSP Manager, Workflow, Skybrud Redirects and UrlTracker keep no history of who c
 
 - **Going forward only.** There is no backfill. Rows start from the day you update to 17.1 / 18.1 (the first versions with the recorder).
 - **What a row holds:** when, the user, the kind of change and the item's name. A short list of safe flags is kept for some packages (for example whether a CSP is report-only). It never holds a CSP policy's text, a redirect's destination or query string, or a request body.
-- **Which changes:** CSP Manager saves; Skybrud Redirects add, edit and delete; UrlTracker create, update and delete (Umbraco 17 only until UrlTracker ships a stable release for 18); Workflow settings, approval flows (saved or deleted; the flow's contents are not stored), approval groups (created, edited, deleted) and workflow instances (created, each approved step, rejected, completed; cancelled and resubmitted are not recorded).
+- **Which changes:** CSP Manager saves; Skybrud Redirects add, edit and delete; UrlTracker create, update and delete (Umbraco 17 only); Workflow settings, approval flows (saved or deleted; the flow's contents are not stored), approval groups (created, edited, deleted) and workflow instances (created, each approved step, rejected, completed; cancelled and resubmitted are not recorded).
 - **No user.** A change made with no backoffice user (a background job or an API call) is recorded with no user and shows as such.
 - **A rolled-back save can still leave a row.** For most packages the recorder writes after the change is stored, so if that package rolls its save back afterwards, a row can remain. It is still a true record that the change was attempted. Skybrud Redirects' delete is the exception: the row is written inside Skybrud's own transaction, so the row and the delete commit or roll back together.
+- **Not on Umbraco 19 yet.** CSP Manager, Skybrud Redirects and UrlTracker recorders are not part of the 19 line: none of those packages has a release for Umbraco 19 on NuGet (checked 17 November 2026). Each returns in a 19.x minor once its package ships. The Activity tab, the global view, export and the other sources (core, Automate, Forms, AI, uSync, Archived Users and the Workflow recorder) work on 19.
 - **Never breaks the other package.** If the recorder can't write, it logs a warning (source and error type only) and the save carries on. Umbraco's own database layer also logs a failed write, and at Debug level that log can include the values being written, so keep Debug logging off on a live site.
 
 ### Set a retention limit
@@ -160,7 +163,7 @@ A daily background job deletes older rows in batches of 1,000 and logs one line 
 
 ## Add your own source
 
-Another package can put its own history on the Activity tab and in the global view. The contract is in this package (namespace `Umbraco.Community.UserActivity.Sources`), so a source only shows up where User Activity is installed. It's small, public and versioned with the package: no breaking changes within a major (17.x, 18.x).
+Another package can put its own history on the Activity tab and in the global view. The contract is in this package (namespace `Umbraco.Community.UserActivity.Sources`), so a source only shows up where User Activity is installed. It's small, public and versioned with the package: no breaking changes within a major (17.x, 18.x, 19.x).
 
 1. Implement `IUserActivitySource`:
    - `Alias`: permanent, `^[a-z][a-zA-Z0-9]{1,31}$`, unique across sources. `core`, `automate`, `forms`, `ai`, `usync`, `archivedUsers`, `formsAuditTrail` and `recorder` are taken.

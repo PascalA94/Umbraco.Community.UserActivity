@@ -1,3 +1,4 @@
+#if !UMBRACO_19
 using System.Reflection;
 using System.Runtime.CompilerServices;
 using Skybrud.Umbraco.Redirects.Notifications;
@@ -58,3 +59,5 @@ internal static class SkybrudRedirectsGuard
             .AddRecorderHandler<RedirectSavedNotification, SkybrudRedirectHandlers>(h => h.OnSaved)
             .AddRecorderHandler<RedirectDeletedNotification, SkybrudRedirectHandlers>(h => h.OnDeleted);
 }
+
+#endif

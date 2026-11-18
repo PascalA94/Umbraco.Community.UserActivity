@@ -10,8 +10,8 @@ Token rules and the 14 CI rules: the portfolio README in Pascal's private worksp
 
 ## Lines and versions
 
-- **One branch, two lines.** `UmbracoMajor` (`17` or `18`, default `18`, set as a property or an environment variable) picks the CMS range (`[17.8.0, 18.0.0)` or `[18.3.0, 19.0.0)`), the package version (`17.x.y` or `18.x.y`), the `UMBRACO_17` / `UMBRACO_18` constants and its own `packages.<line>.lock.json`, `obj/<line>` and `bin/<line>`. `eng/lines.txt` lists the lines; `bash build/test.sh` runs the suites once per line.
-- **One client bundle serves both lines.** `@umbraco-cms/backoffice` is a Vite external, the committed `wwwroot/` is built against `^17.8.0`, and CI type-checks the source against `^18.3.0`. Split into two bundles only if a line ever needs different code. If the two lines' APIs ever force different source, move to one branch per line instead.
+- **One branch, three lines.** `UmbracoMajor` (`17`, `18` or `19`, default `18`, set as a property or an environment variable) picks the CMS range (`[17.8.0, 18.0.0)`, `[18.3.0, 19.0.0)` or `[19.0.0-rc1, 20.0.0)`), the package version (`17.x.y` or `18.x.y`; 19 takes its version from the tag, `19.0.0-rc.1`, passed as `-p:Version=`), the `UMBRACO_17` / `UMBRACO_18` / `UMBRACO_19` constants and its own `packages.<line>.lock.json`, `obj/<line>` and `bin/<line>`. 19 defines `UMBRACO_19;UMBRACO_18`, so test `UMBRACO_19` first in any `#if` chain. 19 targets `net11.0` and needs the .NET 11 SDK first on PATH; 17 and 18 stay on `net10.0`. `eng/lines.txt` lists the lines; `bash build/test.sh` runs the suites once per line.
+- **One client bundle serves all lines.** `@umbraco-cms/backoffice` is a Vite external, the committed `wwwroot/` is built against `^17.8.0`, and CI type-checks the source against `^18.3.0` and `19.0.0-rc1`. Split into two bundles only if a line ever needs different code. If the two lines' APIs ever force different source, move to one branch per line instead.
 - The NuGet ID, App_Plugins folder, aliases, and any migration plan, table or route names are permanent once released.
 
 ## Commands
@@ -33,10 +33,10 @@ bash build/check-vulnerable.sh
 
 ## Releasing
 
-- Bump `PackageMinor`, `PackagePatch` and `PackageVersionSuffix` in `Directory.Build.props` (both lines move together), and rebuild the client if its source changed.
-- `bash build/check-vulnerable.sh` and `bash build/check-release-version.sh release/<minor>.<patch>[-suffix]` both exit 0.
-- Run the **Release checks** workflow by hand on the release branch (SQL Server integration, and e2e if present). Never on PRs. Re-run after a new Umbraco minor.
-- Squash-merge, tag `release/<minor>.<patch>[-suffix]` on the merge commit; `publish.yml` (tag `release/*`, from `main` only) restores, builds, tests and audits both lines, packs them with `bash build/pack.sh` (one nupkg per line) and publishes with Trusted Publishing. Then `gh release create` per line, and mark the newest Umbraco line's release as Latest.
+- Two tag families. 17 and 18: bump `PackageMinor`, `PackagePatch` and `PackageVersionSuffix` in `Directory.Build.props` (both lines move together), tag `release/<minor>.<patch>[-suffix]`. 19: no props change, tag `release/19.<minor>.<patch>[-suffix]` (for example `release/19.0.0-rc.1`), which packs line 19 only with the tag as its version. `bash build/release-lines.sh <tag>` prints the lines a tag packs. Rebuild the client if its source changed.
+- `bash build/check-vulnerable.sh` and `bash build/check-release-version.sh <tag>` (`release/<minor>.<patch>[-suffix]` or `release/19.<minor>.<patch>[-suffix]`) both exit 0.
+- Run the **Release checks** workflow by hand on the release branch (SQL Server integration on every line, and e2e; 19 e2e is advisory until 19 stable). Never on PRs. Re-run after a new Umbraco minor.
+- Squash-merge, tag the merge commit with the matching family; `publish.yml` (tag `release/*`, from `main` only) restores, builds, tests and audits the tag's lines, packs them with `bash build/pack.sh` (one nupkg per line) and publishes with Trusted Publishing. Then `gh release create` per line (`--prerelease` for 19 RCs, never Latest), and mark the newest stable Umbraco line's release as Latest.
 - Stable from the first real public release unless the API is still moving (`.github/REPO-SETUP.md` step 10); after that, no breaking changes within a major.
 - "Done" means green on GitHub. The first CI run is its own step with Pascal.
 
@@ -46,12 +46,13 @@ bash build/check-vulnerable.sh
 - **One package.** The nuspec depends on Umbraco only. Umbraco.AI and uSync are compile-only references (PackageDownload + DLL reference, never a PackageReference).
 - **Optional-assembly rule:** nothing outside an adapter's own folder names an optional package's type; the guard uses names and reflection, registration is a separate `NoInlining` method, and adapters never `await` an integration's type (`AdapterTasks`). `ArchitectureTests_EveryTypeLoads_WithoutOptionalAssemblies` and the `NotInstalled` host guard it.
 - **Read-only on other stores:** no `INSERT`, `UPDATE` or `DELETE` in our SQL (architecture test). View rows go through `IAuditEntryService`.
+- **Cross-site gate on 19:** the `Sec-Fetch-Site` filter (`FetchMetadataFilter`) on `UserActivityControllerBase` is a control. 19 accepts the auth cookie alone, so do not remove it. 17 and 18 rely on the required bearer header instead.
 - **Authorisation lives in one place:** `UserActivityAuthorizationHandler` (readers = an allowed group **and** the Users section; self-view = own tab only, never details of others, never the global view). The client conditions only hide UI.
 - **No personal data in our logs:** source alias, counts, durations, exception types only.
 - **IP addresses off by default,** enforced in the engine for every source, third-party ones included.
 - **Text only:** no `innerHTML`, `unsafeHTML` or `unsafeStatic` (`build/check-xss.sh`); CSV cells are formula-escaped.
 - **Export off by default** (404 when off), capped, one at a time per user.
-- **One client bundle for both lines.**
+- **One client bundle for all lines.**
 
 ## Keep
 

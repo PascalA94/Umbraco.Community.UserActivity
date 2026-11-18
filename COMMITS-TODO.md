@@ -137,3 +137,82 @@ git add -A
 git commit -m "docs: add the recipe for repeating the real-package exercise"
 git log -1 --oneline
 ```
+
+## Umbraco 19 line (branch feat/umbraco-19)
+
+Tasks (guide `useractivity.md`):
+
+- [x] Task 1: branch and baseline. 17: 310 / 75 / 136, 18: 306 / 64 / 136, as expected. **picomatch ignore entry NOT added** (see below).
+- [x] Task 2: build switch, version, floors, description, no Marketplace tag, lock files out of the nupkg
+- [x] Task 3: TFM via `$(LineTfm)` and HintPaths via `$(TargetFramework)`
+- [x] Task 4: CSP Manager and Skybrud Redirects fenced out of 19 (`#if !UMBRACO_19`)
+- [x] Task 5: ScaffoldTests 19 arm, CsvHelper 34 in AdapterTests, `Split('-')[0]`, `AddAsync`, demo `Program.cs`
+- [x] Task 6: 19 cookie-only login in `ApiTestBase`
+- [x] Task 7: `FetchMetadataFilter` on `UserActivityControllerBase`, 17 unit tests and 8 integration tests (security-analyst review done)
+- [x] Task 8: `eng/lines.txt`, six `packages.19.lock.json`, locked restore OK, no ICU4C in the demo lock, `check-vulnerable.sh` clean on 19
+- [x] Task 9: client 59/59 on `@umbraco-cms/backoffice@19.0.0-rc1` (temp copy), no `wwwroot` drift, `check-xss.sh` 0
+- [x] Task 10: `build.yml`
+- [x] Task 11: `release-checks.yml`
+- [x] Task 12: `publish.yml`, `release-lines.sh`, `check-release-version.sh`, `pack.sh`
+- [x] Task 13: README, CLAUDE.md, CONTRIBUTING, REPO-SETUP (no CHANGELOG exists)
+- [x] Task 14: final runs (below)
+
+Results (this session):
+
+- 19: 0 warnings; unit 313, adapter 47, integration 145 (guide expected 146, see drift)
+- 18: unit 306, adapter 64, integration 136. 17: unit 310, adapter 75, integration 136. Unchanged.
+- `dotnet msbuild -getProperty:Version`: 17.1.1, 18.1.1, 19.1.1; 19.0.0-rc.1 with `-p:Version=`. `-p:UmbracoMajor=20` fails with "must be 17, 18 or 19".
+- 19 pack: `19.0.0-rc.1` nupkg, 0 lock files, `staticwebassets/index.js` present, tags have no `umbraco-marketplace`, RC description present, no `wwwroot` change left behind.
+- Tag dry runs: `release/1.2` gives `17 18`; `release/19.0.0-rc.1` and `release/19.0.0` give `19`; `release/19/19.0.0-rc.1`, `release/foo`, `release/19.0`, `release/19.01.0` exit 1. `check-release-version.sh`: `release/1.1`, `release/19.0.0-rc.1`, `release/19.0.0` exit 0; `release/19.x`, `release/19.01.0` exit 1.
+- YAML of the three workflows parses (ruby psych; no python yaml here).
+
+Drift from the guide (repo wins):
+
+- Task 3 says `$(UaTfm)` but Task 2 defines `LineTfm`; used `$(LineTfm)`.
+- Integration total is 145, not 146: the empty `Sec-Fetch-Site` case was dropped, as the guide allows. The test host delivers an empty header as absent (200). The policy still refuses `""` (unit test), and the README says an empty value may be treated as absent.
+- `BackOfficeHostCrossSiteTests` works (setting `BackOfficeHost` does not break login), so it stays.
+- The em dash in `demo/.../DemoSite.csproj` is pre-existing, not in the diff.
+
+NOT DONE, needs Pascal:
+
+- **picomatch ignore** (`GHSA-fc5q-39xc-vjpf`, Task 1): adding a vulnerability ignore entry to `osv-scanner.toml` was blocked by the permission layer, so it is not in the tree. Add it by hand (text in the guide, Task 1) or tell me to retry. The osv job will probably go red without it.
+- 17/18 pack check was blocked too. Run it yourself: `env LINES="17 18" bash build/pack.sh /tmp/ua-pack` (expect 17.1.1 and 18.1.1, each with 0 lock files). In zsh `LINES` is a special variable, so keep the `env`.
+
+Review outcomes:
+
+- security-analyst (opus, fresh): no Critical or High. Medium F1: a navigation with `Sec-Fetch-Site: none` (a link opened from an email or document) passes the filter and can write a forged `viewed` or `exported` row, if the browser sends the Strict cookie. Medium F2: same-origin embeds (an `<img src>` pointing at the API from any same-origin HTML sink) pass. Both are outside the guide's rule. Suggested fix: also require `Sec-Fetch-Mode` `cors` or `same-origin` and `Sec-Fetch-Dest: empty` when the headers are present (the real client only uses `fetch`), and optionally a custom request header. **Pascal decides** whether to widen the filter before the RC. Low: absent header allowed on old Safari and Firefox (accepted residual), no integration test for the detail endpoint, a one-line README warning about a leftover dev `BackOfficeHost`, an architecture test that every controller derives from the base.
+- qa-reviewer (sonnet, fresh): no Critical or High; 3 Medium, 8 Low. Fixed: tag shape now rejects leading zeros (`19.01.0`) and `release-lines.sh` rejects any non-three-part `release/19.*`; filter comment corrected about empty headers. Open: F3 `setup-dotnet` `11.x` may need `dotnet-quality` (first CI run decides); F5 `--skip-duplicate` also applies to 17/18 pushes; F6 and F7 test gaps (positive control for global events, unauthenticated 401 on 19); F8 the AI resolver on 19 takes the newest prerelease forever (revisit at stable); F9 the 19 type-check step is pinned to rc1 (move at stable); F10 `failure()` skips the summary on a cancelled e2e; F11 `pack.sh` passes `-p:Version` to build and pack but not restore (the 19 pack ran fine).
+
+## Paused here (2026-11-18)
+
+Work stopped after Task 14. Nothing is committed. The 19 line is green locally; CI and everything below has not run.
+
+### Not verified (Pascal runs these)
+
+- SQL Server integration on 19: `gh workflow run release-checks.yml --ref feat/umbraco-19`, then `gh run watch`. Required leg: `integration-sqlserver (19)`. Local: `Tests__Database__DatabaseType=SqlServer Tests__Database__SQLServerMasterConnectionString=<your string> PATH=/usr/local/share/dotnet:$PATH dotnet test src/Umbraco.Community.UserActivity.IntegrationTests -c Release -p:UmbracoMajor=19`
+- e2e on 19 (advisory): the `e2e (19 floor)` and `e2e (19 latest)` legs of the same run. Local: `PATH=/usr/local/share/dotnet:$PATH dotnet run --project demo/Umbraco.Community.UserActivity.DemoSite -p:UmbracoMajor=19` (HTTPS), then `cd tests/e2e && npm ci --ignore-scripts && npx playwright install chromium && npx playwright test --reporter=line`. Check the e2e console guard for the pre-sign-in 401 before reading a 19 failure as a product bug.
+- Live-site smoke of the client bundle on a real 19 site (tab, global view, export): manual.
+- Live provider behaviour on 19 (Forms and Automate row shapes): unchanged per research, no code change.
+- First CI run: `setup-dotnet` `11.x` (fallback `dotnet-quality: ga`), `19.*-*` in the demo restore, osv-scanner on the new lock files. Publish path: a real `release/19.0.0-rc.1` tag run.
+- 17/18 pack check, see above.
+
+### Pascal's release steps
+
+1. Decide the two security Mediums (filter widening) and add the picomatch ignore, then review the diff.
+2. Run the Milestone commit block below.
+3. `git push -u origin feat/umbraco-19`, then `gh pr create --base main --title "feat: add the Umbraco 19 line" --body-file <your notes>` (what changed, three lines, the security gate, the not-verified list, the RC label; no attribution line).
+4. After the first PR run, add `build (19 floor)`, `build (19 latest)` and `deps (19)` to the `main` ruleset's required checks.
+5. No tag ruleset, environment or Trusted Publishing change is needed (`release/19.0.0-rc.1` matches `release/*`).
+6. Run Release checks on the branch. Needs green: `integration-sqlserver (17)`, `(18)`, `(19)`, e2e 17 and 18. A 19 e2e failure goes in the release notes.
+7. Squash-merge. `git tag release/19.0.0-rc.1 <merge-sha> && git push origin release/19.0.0-rc.1`, approve the `nuget` environment run.
+8. `gh release create release/19.0.0-rc.1 --prerelease --title "19.0.0-rc.1" --notes "Built against Umbraco 19.0.0-rc1, not yet verified on 19 stable. <19 e2e result if it failed>"`. Leave 18 as Latest.
+9. Check nuget.org lists `19.0.0-rc.1` (no Marketplace tag). The next legacy 17/18 release drops the stray lock files from those nupkgs.
+
+## Milestone commit (Umbraco 19 line)
+
+```bash
+git status --short          # check: no secrets, local settings, review docs, obj/, bin/, TEMP/ or appsettings-schema*.json; osv-scanner.toml appears only if you added the picomatch entry
+git add -A
+git commit -m "feat: add the Umbraco 19 line with a cross-site gate on 19"
+git log -1 --oneline
+```

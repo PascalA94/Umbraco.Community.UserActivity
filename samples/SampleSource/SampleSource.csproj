@@ -2,7 +2,7 @@
 
   <!-- A third-party source, as another package would write it. Builds in CI with the solution; never packed. -->
   <PropertyGroup>
-    <TargetFramework>net10.0</TargetFramework>
+    <TargetFramework>$(LineTfm)</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <IsPackable>false</IsPackable>

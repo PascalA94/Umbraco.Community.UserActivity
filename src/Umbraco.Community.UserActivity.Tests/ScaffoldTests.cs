@@ -7,7 +7,11 @@ namespace Umbraco.Community.UserActivity.Tests;
 
 public class ScaffoldTests
 {
-#if UMBRACO_17
+#if UMBRACO_19
+    // First, because UMBRACO_18 is also defined on 19.
+    private const int ExpectedMajor = 19;
+    private const string ExpectedRange = "[19.0.0-rc1, 20.0.0)";
+#elif UMBRACO_17
     private const int ExpectedMajor = 17;
     private const string ExpectedRange = "[17.8.0, 18.0.0)";
 #else

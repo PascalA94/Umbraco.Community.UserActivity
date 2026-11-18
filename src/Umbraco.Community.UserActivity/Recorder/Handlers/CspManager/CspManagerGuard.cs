@@ -1,3 +1,4 @@
+#if !UMBRACO_19
 using System.Reflection;
 using System.Runtime.CompilerServices;
 using Umbraco.Cms.Core.DependencyInjection;
@@ -51,3 +52,5 @@ internal static class CspManagerGuard
     private static void Register(IUmbracoBuilder builder)
         => builder.Services.AddRecorderHandler<CspSavedNotification, CspHandlers>(h => h.OnSaved);
 }
+
+#endif

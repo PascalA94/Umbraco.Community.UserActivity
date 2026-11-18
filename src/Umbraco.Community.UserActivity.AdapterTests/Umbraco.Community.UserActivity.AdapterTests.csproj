@@ -7,7 +7,7 @@
     on the CI latest leg (<line>.*, unlocked, like UmbracoTestVersion).
   -->
   <PropertyGroup>
-    <TargetFramework>net10.0</TargetFramework>
+    <TargetFramework>$(LineTfm)</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <IsPackable>false</IsPackable>
@@ -33,6 +33,12 @@
     <PackageReference Include="uSync.History" Version="$(USyncRuntimeVersion)" />
   </ItemGroup>
 
+  <!-- Workflow.Core 19.0.0-rc1 has a module initializer that loads CsvHelper 34, and a bare DLL reference does not bring it.
+       Without it every WorkflowHandlerTests case throws TypeInitializationException. -->
+  <ItemGroup Condition="'$(UmbracoMajor)' == '19'">
+    <PackageReference Include="CsvHelper" Version="34.0.0" />
+  </ItemGroup>
+
   <!--
     Umbraco.AI.Core as its DLL only (PackageDownload, exact version): its dependency graph (ImageSharp, AngleSharp,
     Microsoft.Extensions.AI, ...) isn't needed for the types the adapter binds to, and ImageSharp's only patched 3.x
@@ -42,7 +48,7 @@
   <ItemGroup>
     <PackageDownload Include="Umbraco.AI.Core" Version="[$(AIRuntimeVersion)]" />
     <Reference Include="Umbraco.AI.Core">
-      <HintPath>$(NuGetPackageRoot)umbraco.ai.core/$(AIRuntimeVersion)/lib/net10.0/Umbraco.AI.Core.dll</HintPath>
+      <HintPath>$(NuGetPackageRoot)umbraco.ai.core/$(AIRuntimeVersion)/lib/$(TargetFramework)/Umbraco.AI.Core.dll</HintPath>
       <Private>true</Private>
     </Reference>
   </ItemGroup>
@@ -54,33 +60,33 @@
   <ItemGroup Condition="'$(CspManagerRuntimeVersion)' != ''">
     <PackageDownload Include="Umbraco.Community.CSPManager" Version="[$(CspManagerRuntimeVersion)]" />
     <Reference Include="Umbraco.Community.CSPManager">
-      <HintPath>$(NuGetPackageRoot)umbraco.community.cspmanager/$(CspManagerRuntimeVersion)/lib/net10.0/Umbraco.Community.CSPManager.dll</HintPath>
+      <HintPath>$(NuGetPackageRoot)umbraco.community.cspmanager/$(CspManagerRuntimeVersion)/lib/$(TargetFramework)/Umbraco.Community.CSPManager.dll</HintPath>
       <Private>true</Private>
     </Reference>
   </ItemGroup>
   <ItemGroup Condition="'$(WorkflowRuntimeVersion)' != ''">
     <PackageDownload Include="Umbraco.Workflow.Core" Version="[$(WorkflowRuntimeVersion)]" />
     <Reference Include="Umbraco.Workflow.Core">
-      <HintPath>$(NuGetPackageRoot)umbraco.workflow.core/$(WorkflowRuntimeVersion)/lib/net10.0/Umbraco.Workflow.Core.dll</HintPath>
+      <HintPath>$(NuGetPackageRoot)umbraco.workflow.core/$(WorkflowRuntimeVersion)/lib/$(TargetFramework)/Umbraco.Workflow.Core.dll</HintPath>
       <Private>true</Private>
     </Reference>
   </ItemGroup>
   <ItemGroup Condition="'$(SkybrudRedirectsRuntimeVersion)' != ''">
     <PackageDownload Include="Skybrud.Umbraco.Redirects" Version="[$(SkybrudRedirectsRuntimeVersion)]" />
     <Reference Include="Skybrud.Umbraco.Redirects">
-      <HintPath>$(NuGetPackageRoot)skybrud.umbraco.redirects/$(SkybrudRedirectsRuntimeVersion)/lib/net10.0/Skybrud.Umbraco.Redirects.dll</HintPath>
+      <HintPath>$(NuGetPackageRoot)skybrud.umbraco.redirects/$(SkybrudRedirectsRuntimeVersion)/lib/$(TargetFramework)/Skybrud.Umbraco.Redirects.dll</HintPath>
       <Private>true</Private>
     </Reference>
     <PackageDownload Include="Skybrud.Essentials" Version="[$(SkybrudEssentialsVersion)]" />
     <Reference Include="Skybrud.Essentials">
-      <HintPath>$(NuGetPackageRoot)skybrud.essentials/$(SkybrudEssentialsVersion)/lib/net10.0/Skybrud.Essentials.dll</HintPath>
+      <HintPath>$(NuGetPackageRoot)skybrud.essentials/$(SkybrudEssentialsVersion)/lib/$(TargetFramework)/Skybrud.Essentials.dll</HintPath>
       <Private>true</Private>
     </Reference>
   </ItemGroup>
   <ItemGroup Condition="'$(UrlTrackerRuntimeVersion)' != ''">
     <PackageDownload Include="UrlTracker.Core" Version="[$(UrlTrackerRuntimeVersion)]" />
     <Reference Include="UrlTracker.Core">
-      <HintPath>$(NuGetPackageRoot)urltracker.core/$(UrlTrackerRuntimeVersion)/lib/net10.0/UrlTracker.Core.dll</HintPath>
+      <HintPath>$(NuGetPackageRoot)urltracker.core/$(UrlTrackerRuntimeVersion)/lib/$(TargetFramework)/UrlTracker.Core.dll</HintPath>
       <Private>true</Private>
     </Reference>
   </ItemGroup>

@@ -72,10 +72,10 @@ public class CoreLogSourceTests : UmbracoIntegrationTest
         IUser wren = await TestUsers.CreateAsync("Wren Writer", ["writer"]);
         IUser ed = await TestUsers.CreateEditorAsync("Ed Editor");
         IAuditService audit = GetRequiredService<IAuditService>();
-        audit.Add(AuditType.Save, wren.Id, 1, "Document", "Saved by Wren");
-        audit.Add(AuditType.Publish, wren.Id, 1, "Document", "Published by Wren");
-        audit.Add(AuditType.Move, ed.Id, 1, "Document", "Moved by Ed");
-        audit.Add(AuditType.Delete, ed.Id, 1, "Document", "Deleted by Ed");
+        await audit.AddAsync(AuditType.Save, wren.Key, 1, "Document", "Saved by Wren");
+        await audit.AddAsync(AuditType.Publish, wren.Key, 1, "Document", "Published by Wren");
+        await audit.AddAsync(AuditType.Move, ed.Key, 1, "Document", "Moved by Ed");
+        await audit.AddAsync(AuditType.Delete, ed.Key, 1, "Document", "Deleted by Ed");
 
         ActivitySourcePage page = await Source().QueryAsync(
             Query(Resolved(wren), DateTime.UtcNow.AddHours(-1), DateTime.UtcNow.AddHours(1)), CancellationToken.None);

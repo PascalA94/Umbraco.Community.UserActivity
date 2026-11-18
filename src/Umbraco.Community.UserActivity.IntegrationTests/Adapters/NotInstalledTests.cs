@@ -54,7 +54,10 @@ public class NotInstalledTests : ApiTestBase
         AdapterRegistrations registrations = GetRequiredService<AdapterRegistrations>();
         string[] recorded =
         [
-            RecorderSources.Csp, RecorderSources.Workflow, RecorderSources.SkybrudRedirects,
+            RecorderSources.Workflow,
+#if !UMBRACO_19
+            RecorderSources.Csp, RecorderSources.SkybrudRedirects, // no 19 release of either: line 19 has no guard
+#endif
 #if UMBRACO_17
             RecorderSources.UrlTracker, // line 18 has no UrlTracker guard: there is no stable 18.x release
 #endif
