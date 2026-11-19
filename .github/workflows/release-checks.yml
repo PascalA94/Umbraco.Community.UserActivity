@@ -183,8 +183,9 @@ jobs:
 
       # continue-on-error hides a 19 failure from the run status, so say it here; copy it into the release notes.
       - name: Report a 19 e2e failure
-        if: failure() && matrix.line == '19'
+        if: (failure() || cancelled()) && matrix.line == '19'
         env:
           LEG: ${{ matrix.leg }}
+          STATUS: ${{ job.status }}
         run: |
-          echo "19 e2e FAILED ($LEG leg) - see the Playwright report artifact for the failing test names" >> "$GITHUB_STEP_SUMMARY"
+          echo "19 e2e did not pass ($LEG leg, $STATUS) - see the Playwright report artifact for the failing test names" >> "$GITHUB_STEP_SUMMARY"

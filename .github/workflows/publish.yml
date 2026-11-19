@@ -148,8 +148,12 @@ jobs:
         env:
           NUGET_API_KEY: ${{ steps.nuget-login.outputs.NUGET_API_KEY }}
         run: |
+          # A 19 tag packs one nupkg, so a re-run after a partial failure may meet a version already pushed; 17 and 18
+          # keep the strict push, where a duplicate version means the wrong tag and should fail loudly.
+          skip=""
+          case "$GITHUB_REF_NAME" in release/19.*) skip="--skip-duplicate" ;; esac
           dotnet nuget push ./artifacts/*.nupkg \
             --source https://api.nuget.org/v3/index.json \
             --api-key "$NUGET_API_KEY" \
-            --skip-duplicate
+            $skip
 
