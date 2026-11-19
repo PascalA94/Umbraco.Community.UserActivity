@@ -18,6 +18,9 @@ namespace Umbraco.Community.UserActivity.Controllers;
 [ApiExplorerSettings(GroupName = UserActivityApi.GroupName)]
 [MapToApi(UserActivityApi.DocumentName)]
 [NoStore]
+#if UMBRACO_19
+[TypeFilter(typeof(FetchMetadataFilter))]
+#endif
 public abstract class UserActivityControllerBase : ManagementApiControllerBase
 {
     public const string RouteSegment = "user-activity";

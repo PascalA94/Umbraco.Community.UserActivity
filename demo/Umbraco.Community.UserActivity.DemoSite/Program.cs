@@ -4,7 +4,9 @@ WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
 // One SQLite database per Umbraco line, so switching -p:UmbracoMajor never upgrades or downgrades the other line's data.
 if (builder.Configuration.GetConnectionString("umbracoDbDSN") is { } dsn && dsn.Contains("Umbraco.sqlite.db", StringComparison.Ordinal))
 {
-#if UMBRACO_17
+#if UMBRACO_19
+    const string line = "19";
+#elif UMBRACO_17
     const string line = "17";
 #else
     const string line = "18";

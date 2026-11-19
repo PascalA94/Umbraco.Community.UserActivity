@@ -81,6 +81,20 @@ public abstract class ApiTestBase : UmbracoTestServerTestBase
         });
         client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
 
+#if UMBRACO_19
+        // On 19 the login sets UMB_UCONTEXT (secure, samesite=strict, httponly) and the Management API accepts that
+        // cookie alone. No PKCE and no Authorization header on purpose: a leftover bearer placeholder would hide
+        // whether the cookie authenticates. HandleCookies = true carries the cookie on later calls.
+        HttpResponseMessage login = await client.PostAsync(
+            ManagementApi + "security/back-office/login",
+            JsonContent.Create(new LoginRequestModel { Username = user.Username, Password = TestUsers.Password }));
+        if (login.StatusCode != HttpStatusCode.OK)
+        {
+            throw new InvalidOperationException($"Login failed: {(int)login.StatusCode} {await login.Content.ReadAsStringAsync()}");
+        }
+
+        return (client, login);
+#else
         // Mirrors BackOfficeApplicationManager's (internal) backoffice descriptor: public client
         // "umbraco-back-office", redirect = host + Umbraco:CMS:Security:AuthorizeCallbackPathName.
         using IServiceScope serviceScope = Services.CreateScope();
@@ -129,6 +143,7 @@ public abstract class ApiTestBase : UmbracoTestServerTestBase
         client.DefaultRequestHeaders.Add("Cookie", $"__Host-umbAccessToken={accessToken}");
         client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", "[redacted]");
         return (client, token);
+#endif
     }
 
     protected static string? ReadCookie(HttpResponseMessage response, string name)

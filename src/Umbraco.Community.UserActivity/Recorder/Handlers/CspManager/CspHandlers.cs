@@ -1,3 +1,4 @@
+#if !UMBRACO_19
 using Umbraco.Community.CSPManager.Models;
 using Umbraco.Community.CSPManager.Notifications;
 using Umbraco.Community.UserActivity.Sources;
@@ -37,3 +38,5 @@ internal sealed class CspHandlers
                 ["sourceCount"] = (definition.Sources?.Count ?? 0).ToString(System.Globalization.CultureInfo.InvariantCulture),
             });
 }
+
+#endif

@@ -1,3 +1,4 @@
+#if !UMBRACO_19
 using NSubstitute;
 using Skybrud.Umbraco.Redirects.Models;
 using Skybrud.Umbraco.Redirects.Notifications;
@@ -140,3 +141,5 @@ public class SkybrudRedirectsHandlerTests
         HandlerHarness.AssertNoTrace(row, "destination.example.test");
     }
 }
+
+#endif

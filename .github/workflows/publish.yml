@@ -23,12 +23,29 @@ jobs:
           # The build runs npm and test code: don't leave the job's token in .git/config for it to read.
           persist-credentials: false
 
-      # One branch carries both lines, so a tag publishes only from main.
+      # One branch carries every line, so a tag publishes only from main.
       - name: Tag is on main
         run: git merge-base --is-ancestor "$GITHUB_SHA" origin/main
 
       - name: Version files match the tag
         run: bash build/check-release-version.sh "$GITHUB_REF_NAME"
+
+      # Two tag families (build/release-lines.sh): release/<minor>.<patch>[-suffix] packs 17 and 18, and
+      # release/19.<minor>.<patch>[-suffix] packs 19 only, with the version taken from the tag.
+      - name: Resolve the lines this tag packs
+        id: lines
+        env:
+          TAG: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+          lines="$(bash build/release-lines.sh "$TAG")"
+          if [ "$lines" = "19" ]; then pack_version="${TAG#release/}"; sdk="11.x"; else pack_version=""; sdk="10.x"; fi
+          {
+            echo "lines=$lines"
+            echo "pack_version=$pack_version"
+            echo "expected=$(wc -w <<<"$lines" | tr -d ' ')"
+            echo "sdk=$sdk"
+          } >> "$GITHUB_OUTPUT"
 
       - name: Setup Node
         uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
@@ -51,33 +68,41 @@ jobs:
       - name: Setup .NET
         uses: actions/setup-dotnet@0f4a354dd5547a28c70b7853dbd95d5b67886e73 # v6.1.0
         with:
-          dotnet-version: '10.x'
+          dotnet-version: ${{ steps.lines.outputs.sdk }}
 
-      # Both lines are restored (locked), built, tested and checked for known advisories before anything is packed.
-      - name: Build, test and audit both lines
+      # The tag's lines are restored (locked), built, tested and checked for known advisories before anything is packed.
+      - name: Build, test and audit the tag's lines
+        env:
+          LINES: ${{ steps.lines.outputs.lines }}
         run: |
-          while read -r line; do
-            [ -n "$line" ] || continue
+          for line in $LINES; do
             echo "== Umbraco $line"
             dotnet restore src/Umbraco.Community.UserActivity.slnx "-p:UmbracoMajor=$line" --locked-mode
             dotnet build src/Umbraco.Community.UserActivity.slnx --no-restore -c Release "-p:UmbracoMajor=$line"
             dotnet test src/Umbraco.Community.UserActivity.slnx --no-build -c Release "-p:UmbracoMajor=$line"
             UmbracoMajor="$line" bash build/check-vulnerable.sh
-          done < eng/lines.txt
+          done
 
-      # One nupkg per line (17.x and 18.x), each carrying wwwroot. Only the package is packed: tests and the demo site
-      # are IsPackable=false. pack.sh stamps the line's version into the manifest and restores it afterwards.
+      # One nupkg per line, each carrying wwwroot. Only the package is packed: tests and the demo site are
+      # IsPackable=false. pack.sh stamps the version into the manifest and restores it afterwards.
       - name: Pack
+        env:
+          LINES: ${{ steps.lines.outputs.lines }}
+          PACK_VERSION: ${{ steps.lines.outputs.pack_version }}
         run: bash build/pack.sh ./artifacts
 
       - name: One package per line
+        env:
+          EXPECTED: ${{ steps.lines.outputs.expected }}
         run: |
           shopt -s nullglob
           packs=(./artifacts/*.nupkg)
-          [ "${#packs[@]}" -eq 2 ] || { echo "expected 2 nupkgs, found ${#packs[@]}" >&2; exit 1; }
+          [ "${#packs[@]}" -eq "$EXPECTED" ] || { echo "expected $EXPECTED nupkgs, found ${#packs[@]}" >&2; exit 1; }
           # Each package must carry the client bundle.
           for f in "${packs[@]}"; do
             unzip -l "$f" | grep -q 'staticwebassets/index.js' || { echo "$f has no staticwebassets/index.js" >&2; exit 1; }
+            # Per-line lock files are restore inputs, never package content.
+            [ "$(unzip -Z1 "$f" | grep -c lock.json || true)" = "0" ] || { echo "$f ships a lock file" >&2; exit 1; }
           done
 
       - name: Upload packages
@@ -108,6 +133,7 @@ jobs:
       - name: Setup .NET
         uses: actions/setup-dotnet@0f4a354dd5547a28c70b7853dbd95d5b67886e73 # v6.1.0
         with:
+          # The publish job only runs dotnet nuget push, which needs no net11.0 support, so 10.x serves every tag.
           dotnet-version: '10.x'
 
       # Needs the repository secret NUGET_USER (the nuget.org profile name, not a key) and a Trusted Publishing
@@ -124,5 +150,6 @@ jobs:
         run: |
           dotnet nuget push ./artifacts/*.nupkg \
             --source https://api.nuget.org/v3/index.json \
-            --api-key "$NUGET_API_KEY"
+            --api-key "$NUGET_API_KEY" \
+            --skip-duplicate
 

@@ -85,7 +85,7 @@ public class AISourceTests
         Assert.Null(result.MissingMember);
         if (!expected.Contains('*'))
         {
-            Assert.StartsWith(expected, ai.GetName().Version!.ToString());
+            Assert.StartsWith(expected.Split('-')[0], ai.GetName().Version!.ToString());
         }
     }
 

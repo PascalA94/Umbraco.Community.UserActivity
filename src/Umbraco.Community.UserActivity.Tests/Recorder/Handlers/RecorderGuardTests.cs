@@ -4,8 +4,10 @@ using Microsoft.Extensions.DependencyInjection;
 using NSubstitute;
 using Umbraco.Cms.Core.DependencyInjection;
 using Umbraco.Community.UserActivity.Recorder;
+#if !UMBRACO_19
 using Umbraco.Community.UserActivity.Recorder.Handlers.CspManager;
 using Umbraco.Community.UserActivity.Recorder.Handlers.SkybrudRedirects;
+#endif
 using Umbraco.Community.UserActivity.Recorder.Handlers.Workflow;
 using Umbraco.Community.UserActivity.Sources.Adapters;
 #if UMBRACO_17
@@ -23,7 +25,11 @@ public class RecorderGuardTests
 {
     public static TheoryData<string> Names()
     {
-        var data = new TheoryData<string> { RecorderSources.Csp, RecorderSources.Workflow, RecorderSources.SkybrudRedirects };
+        var data = new TheoryData<string> { RecorderSources.Workflow };
+#if !UMBRACO_19
+        data.Add(RecorderSources.Csp);
+        data.Add(RecorderSources.SkybrudRedirects);
+#endif
 #if UMBRACO_17
         data.Add(RecorderSources.UrlTracker);
 #endif
@@ -33,9 +39,11 @@ public class RecorderGuardTests
     private static (string AssemblyName, Func<Assembly?, SourceAvailabilityResult> Evaluate, IReadOnlyList<MemberSpec> Members) Guard(string name)
         => name switch
         {
+#if !UMBRACO_19
             RecorderSources.Csp => (CspManagerGuard.AssemblyName, CspManagerGuard.Evaluate, CspManagerGuard.Members),
-            RecorderSources.Workflow => (WorkflowGuard.AssemblyName, WorkflowGuard.Evaluate, WorkflowGuard.Members),
             RecorderSources.SkybrudRedirects => (SkybrudRedirectsGuard.AssemblyName, SkybrudRedirectsGuard.Evaluate, SkybrudRedirectsGuard.Members),
+#endif
+            RecorderSources.Workflow => (WorkflowGuard.AssemblyName, WorkflowGuard.Evaluate, WorkflowGuard.Members),
 #if UMBRACO_17
             RecorderSources.UrlTracker => (UrlTrackerGuard.AssemblyName, UrlTrackerGuard.Evaluate, UrlTrackerGuard.Members),
 #endif
@@ -79,9 +87,11 @@ public class RecorderGuardTests
 
         SourceAvailabilityResult[] results =
         [
+#if !UMBRACO_19
             CspManagerGuard.TryRegister(builder, registry),
-            WorkflowGuard.TryRegister(builder, registry),
             SkybrudRedirectsGuard.TryRegister(builder, registry),
+#endif
+            WorkflowGuard.TryRegister(builder, registry),
 #if UMBRACO_17
             UrlTrackerGuard.TryRegister(builder, registry),
 #endif
@@ -92,6 +102,7 @@ public class RecorderGuardTests
         Assert.Empty(services);
     }
 
+#if !UMBRACO_19
     [Fact]
     public void CspProbe_CoversTheMembersTheHandlerReads()
     {
@@ -123,6 +134,8 @@ public class RecorderGuardTests
         Assert.DoesNotContain("Skybrud.Umbraco.Redirects.Models.IRedirect.QueryString", names);
         Assert.DoesNotContain("Skybrud.Umbraco.Redirects.Models.IRedirect.Url", names);
     }
+
+#endif
 
     [Fact]
     public void WorkflowProbe_CoversTheNotificationsAndTheGroupFieldsRead()
@@ -170,9 +183,11 @@ public class RecorderGuardTests
     private static SourceAvailabilityResult TryRegister(string name, IUmbracoBuilder builder, RecorderHandlerRegistry registry, Assembly? assembly)
         => name switch
         {
+#if !UMBRACO_19
             RecorderSources.Csp => CspManagerGuard.TryRegister(builder, registry, assembly),
-            RecorderSources.Workflow => WorkflowGuard.TryRegister(builder, registry, assembly),
             RecorderSources.SkybrudRedirects => SkybrudRedirectsGuard.TryRegister(builder, registry, assembly),
+#endif
+            RecorderSources.Workflow => WorkflowGuard.TryRegister(builder, registry, assembly),
 #if UMBRACO_17
             RecorderSources.UrlTracker => UrlTrackerGuard.TryRegister(builder, registry, assembly),
 #endif

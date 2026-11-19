@@ -1,3 +1,4 @@
+#if !UMBRACO_19
 using Skybrud.Umbraco.Redirects.Models;
 using Skybrud.Umbraco.Redirects.Notifications;
 using Umbraco.Community.UserActivity.Sources;
@@ -41,3 +42,5 @@ internal sealed class SkybrudRedirectHandlers
                 ["permanent"] = RecorderDetails.Flag(redirect.IsPermanent),
             });
 }
+
+#endif

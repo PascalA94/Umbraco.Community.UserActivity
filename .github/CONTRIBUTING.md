@@ -4,8 +4,8 @@ Issues and pull requests are welcome. For anything bigger than a small fix, open
 
 ## Branches
 
-- `main` builds both Umbraco lines (package 17.x for Umbraco 17, 18.x for Umbraco 18); `-p:UmbracoMajor=17` or `18` picks the line.
-- Open pull requests against `main`. A change must build and pass the tests on both lines.
+- `main` builds all three Umbraco lines (package 17.x for Umbraco 17, 18.x for Umbraco 18, 19.x for Umbraco 19, which needs the .NET 11 SDK); `-p:UmbracoMajor=17`, `18` or `19` picks the line.
+- Open pull requests against `main`. A change must build and pass the tests on all three lines.
 
 ## Build and test
 

@@ -64,7 +64,7 @@ public class USyncSourceTests
         Assert.Equal(AdapterState.Registered, result.State);
         if (!expected.Contains('*'))
         {
-            Assert.StartsWith(expected, usync.GetName().Version!.ToString());
+            Assert.StartsWith(expected.Split('-')[0], usync.GetName().Version!.ToString());
         }
     }
 

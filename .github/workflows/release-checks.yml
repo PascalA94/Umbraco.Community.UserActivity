@@ -19,7 +19,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        line: ['17', '18']
+        line: ['17', '18', '19']
     env:
       Tests__Database__DatabaseType: SqlServer
       # MSBuild reads environment variables as properties: this picks the Umbraco line (Directory.Build.props).
@@ -45,7 +45,8 @@ jobs:
       - name: Setup .NET
         uses: actions/setup-dotnet@0f4a354dd5547a28c70b7853dbd95d5b67886e73 # v6.1.0
         with:
-          dotnet-version: '10.x'
+          # The 19 target framework is net11.0; 17 and 18 stay on net10.0.
+          dotnet-version: ${{ matrix.line == '19' && '11.x' || '10.x' }}
           # NuGet cache keyed on the lock files. Not used in publish.yml, so a release never restores from a PR-filled cache.
           cache: true
           cache-dependency-path: '**/packages.*.lock.json'
@@ -66,25 +67,27 @@ jobs:
           name: release-checks-sqlserver-${{ matrix.line }}
           path: '**/*.trx'
 
-  # Playwright against the demo site, on each line at its floor and at its newest minor.
+  # Playwright against the demo site, on each line (17, 18, 19) at its floor and at its newest minor.
   e2e:
     name: e2e (${{ matrix.line }} ${{ matrix.leg }})
     runs-on: ubuntu-latest
+    # 19 e2e becomes required at stable (D3/S12): until then a 19 failure is reported in the run summary, not by the run status.
+    continue-on-error: ${{ matrix.line == '19' }}
     strategy:
       fail-fast: false
       matrix:
-        line: ['17', '18']
+        line: ['17', '18', '19']
         leg: [floor, latest]
     env:
       # MSBuild reads environment variables as properties: UmbracoMajor picks the line, and the latest leg floats the demo's
       # Umbraco version. An empty value falls through to the Directory.Build.props default (the floor).
       UmbracoMajor: ${{ matrix.line }}
-      UmbracoDemoVersion: ${{ matrix.leg == 'latest' && format('{0}.*', matrix.line) || '' }}
+      UmbracoDemoVersion: ${{ matrix.leg == 'latest' && (matrix.line == '19' && '19.*-*' || format('{0}.*', matrix.line)) || '' }}
       ASPNETCORE_ENVIRONMENT: Development
       ConnectionStrings__umbracoDbDSN_ProviderName: Microsoft.Data.SqlClient
       # Umbraco's OpenIddict server refuses plain HTTP (ID2083), so the demo runs on HTTPS with the .NET dev certificate.
       URL: https://localhost:44331
-      # Invitation links need a fixed application URL on Umbraco 18.3+.
+      # Invitation links need a fixed application URL on Umbraco 18.3+ (and 19.0+).
       Umbraco__CMS__WebRouting__UmbracoApplicationUrl: https://localhost:44331
       ADMIN_EMAIL: admin@example.test
     steps:
@@ -125,7 +128,8 @@ jobs:
       - name: Setup .NET
         uses: actions/setup-dotnet@0f4a354dd5547a28c70b7853dbd95d5b67886e73 # v6.1.0
         with:
-          dotnet-version: '10.x'
+          # The 19 target framework is net11.0; 17 and 18 stay on net10.0.
+          dotnet-version: ${{ matrix.line == '19' && '11.x' || '10.x' }}
           # NuGet cache keyed on the lock files. Not used in publish.yml, so a release never restores from a PR-filled cache.
           cache: true
           cache-dependency-path: '**/packages.*.lock.json'
@@ -176,3 +180,11 @@ jobs:
             tests/e2e/playwright-report
             tests/e2e/test-results
             demo.log
+
+      # continue-on-error hides a 19 failure from the run status, so say it here; copy it into the release notes.
+      - name: Report a 19 e2e failure
+        if: failure() && matrix.line == '19'
+        env:
+          LEG: ${{ matrix.leg }}
+        run: |
+          echo "19 e2e FAILED ($LEG leg) - see the Playwright report artifact for the failing test names" >> "$GITHUB_STEP_SUMMARY"

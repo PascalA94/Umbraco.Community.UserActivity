@@ -13,8 +13,10 @@ using Umbraco.Community.UserActivity.Export;
 using Umbraco.Community.UserActivity.Query;
 using Umbraco.Community.UserActivity.Recorder;
 using Umbraco.Community.UserActivity.Recorder.Handlers;
+#if !UMBRACO_19
 using Umbraco.Community.UserActivity.Recorder.Handlers.CspManager;
 using Umbraco.Community.UserActivity.Recorder.Handlers.SkybrudRedirects;
+#endif
 using Umbraco.Community.UserActivity.Recorder.Handlers.Workflow;
 #if UMBRACO_17
 using Umbraco.Community.UserActivity.Recorder.Handlers.UrlTracker;
@@ -63,9 +65,14 @@ public sealed class UserActivityComposer : IComposer
         adapters.Add(AdapterRegistrations.Safely(SourceAlias.AI, () => AIGuard.TryRegister(builder)));
         adapters.Add(AdapterRegistrations.Safely(SourceAlias.USync, () => USyncGuard.TryRegister(builder)));
         // Recorded packages (design 4.1): the same guard rule, and a guard that passes also registers its handler name.
+#if !UMBRACO_19
+        // CSP Manager and Skybrud Redirects have no 19 release yet, so line 19 compiles no guard for them.
         adapters.Add(AdapterRegistrations.Safely(RecorderSources.Csp, () => CspManagerGuard.TryRegister(builder, handlers)));
+#endif
         adapters.Add(AdapterRegistrations.Safely(RecorderSources.Workflow, () => WorkflowGuard.TryRegister(builder, handlers)));
+#if !UMBRACO_19
         adapters.Add(AdapterRegistrations.Safely(RecorderSources.SkybrudRedirects, () => SkybrudRedirectsGuard.TryRegister(builder, handlers)));
+#endif
 #if UMBRACO_17
         // UrlTracker has no stable 18.x release (docs/spikes.md, M5 handler probe), so line 18 compiles no guard for it.
         adapters.Add(AdapterRegistrations.Safely(RecorderSources.UrlTracker, () => UrlTrackerGuard.TryRegister(builder, handlers)));

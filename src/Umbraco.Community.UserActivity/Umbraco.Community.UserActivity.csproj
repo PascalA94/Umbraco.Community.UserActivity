@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk.Razor">
 
   <PropertyGroup>
-    <TargetFramework>net10.0</TargetFramework>
+    <TargetFramework>$(LineTfm)</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <RootNamespace>Umbraco.Community.UserActivity</RootNamespace>
@@ -19,6 +19,7 @@
     <VersionSuffix>$(PackageVersionSuffix)</VersionSuffix>
     <Authors>Pascal Meyer</Authors>
     <Description>A per-user Activity tab and a global Activity view under Users, reading Umbraco's audit logs and other packages' history.</Description>
+    <Description Condition="'$(UmbracoMajor)' == '19'">A per-user Activity tab and a global Activity view under Users, reading Umbraco's audit logs and other packages' history. Built against Umbraco 19.0.0-rc1, not yet verified on 19 stable.</Description>
     <Copyright>Copyright © Pascal Meyer</Copyright>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageReadmeFile>README.md</PackageReadmeFile>
@@ -27,6 +28,8 @@
     <RepositoryUrl>https://github.com/PascalA94/Umbraco.Community.UserActivity</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
     <PackageTags>umbraco;umbraco-marketplace;umbracopackage;audit;activity;users;security;gdpr;backoffice</PackageTags>
+    <!-- RCs carry no Marketplace tag; remove this line at 19 stable. -->
+    <PackageTags Condition="'$(UmbracoMajor)' == '19'">$(PackageTags.Replace('umbraco-marketplace;', ''))</PackageTags>
     <GeneratePackageOnBuild>false</GeneratePackageOnBuild>
   </PropertyGroup>
 
@@ -62,14 +65,14 @@
   <ItemGroup Condition="'$(AICompileVersion)' != ''">
     <PackageDownload Include="Umbraco.AI.Core" Version="[$(AICompileVersion)]" />
     <Reference Include="Umbraco.AI.Core">
-      <HintPath>$(NuGetPackageRoot)umbraco.ai.core/$(AICompileVersion)/lib/net10.0/Umbraco.AI.Core.dll</HintPath>
+      <HintPath>$(NuGetPackageRoot)umbraco.ai.core/$(AICompileVersion)/lib/$(TargetFramework)/Umbraco.AI.Core.dll</HintPath>
       <Private>false</Private>
     </Reference>
   </ItemGroup>
   <ItemGroup Condition="'$(USyncCompileVersion)' != ''">
     <PackageDownload Include="uSync.History" Version="[$(USyncCompileVersion)]" />
     <Reference Include="uSync.History">
-      <HintPath>$(NuGetPackageRoot)usync.history/$(USyncCompileVersion)/lib/net10.0/uSync.History.dll</HintPath>
+      <HintPath>$(NuGetPackageRoot)usync.history/$(USyncCompileVersion)/lib/$(TargetFramework)/uSync.History.dll</HintPath>
       <Private>false</Private>
     </Reference>
   </ItemGroup>
@@ -77,28 +80,28 @@
   <ItemGroup Condition="'$(CspManagerCompileVersion)' != ''">
     <PackageDownload Include="Umbraco.Community.CSPManager" Version="[$(CspManagerCompileVersion)]" />
     <Reference Include="Umbraco.Community.CSPManager">
-      <HintPath>$(NuGetPackageRoot)umbraco.community.cspmanager/$(CspManagerCompileVersion)/lib/net10.0/Umbraco.Community.CSPManager.dll</HintPath>
+      <HintPath>$(NuGetPackageRoot)umbraco.community.cspmanager/$(CspManagerCompileVersion)/lib/$(TargetFramework)/Umbraco.Community.CSPManager.dll</HintPath>
       <Private>false</Private>
     </Reference>
   </ItemGroup>
   <ItemGroup Condition="'$(WorkflowCompileVersion)' != ''">
     <PackageDownload Include="Umbraco.Workflow.Core" Version="[$(WorkflowCompileVersion)]" />
     <Reference Include="Umbraco.Workflow.Core">
-      <HintPath>$(NuGetPackageRoot)umbraco.workflow.core/$(WorkflowCompileVersion)/lib/net10.0/Umbraco.Workflow.Core.dll</HintPath>
+      <HintPath>$(NuGetPackageRoot)umbraco.workflow.core/$(WorkflowCompileVersion)/lib/$(TargetFramework)/Umbraco.Workflow.Core.dll</HintPath>
       <Private>false</Private>
     </Reference>
   </ItemGroup>
   <ItemGroup Condition="'$(SkybrudRedirectsCompileVersion)' != ''">
     <PackageDownload Include="Skybrud.Umbraco.Redirects" Version="[$(SkybrudRedirectsCompileVersion)]" />
     <Reference Include="Skybrud.Umbraco.Redirects">
-      <HintPath>$(NuGetPackageRoot)skybrud.umbraco.redirects/$(SkybrudRedirectsCompileVersion)/lib/net10.0/Skybrud.Umbraco.Redirects.dll</HintPath>
+      <HintPath>$(NuGetPackageRoot)skybrud.umbraco.redirects/$(SkybrudRedirectsCompileVersion)/lib/$(TargetFramework)/Skybrud.Umbraco.Redirects.dll</HintPath>
       <Private>false</Private>
     </Reference>
   </ItemGroup>
   <ItemGroup Condition="'$(UrlTrackerCompileVersion)' != ''">
     <PackageDownload Include="UrlTracker.Core" Version="[$(UrlTrackerCompileVersion)]" />
     <Reference Include="UrlTracker.Core">
-      <HintPath>$(NuGetPackageRoot)urltracker.core/$(UrlTrackerCompileVersion)/lib/net10.0/UrlTracker.Core.dll</HintPath>
+      <HintPath>$(NuGetPackageRoot)urltracker.core/$(UrlTrackerCompileVersion)/lib/$(TargetFramework)/UrlTracker.Core.dll</HintPath>
       <Private>false</Private>
     </Reference>
   </ItemGroup>
@@ -108,6 +111,8 @@
     <None Include="..\..\assets\icon.png" Pack="true" PackagePath="\" />
     <!-- The client source is not package content; only the built wwwroot assets ship -->
     <Content Remove="Client\**" />
+    <!-- The per-line lock files are restore inputs, not package content (the Razor SDK would ship them as content). -->
+    <Content Remove="packages.*.lock.json" />
     <None Include="Client\**" Pack="false" />
   </ItemGroup>
 
