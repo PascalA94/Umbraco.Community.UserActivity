@@ -25,6 +25,16 @@ public class FetchMetadataPolicyTests
     public void Other_values_are_refused(string value) => Assert.False(FetchMetadataPolicy.IsAllowed([value], null, null));
 
     [Fact]
+    public void Several_values_all_safe_are_allowed() => Assert.True(FetchMetadataPolicy.IsAllowed(["same-origin", "none"], null, null));
+
+    [Fact]
+    public void Several_values_with_one_unsafe_are_refused() => Assert.False(FetchMetadataPolicy.IsAllowed(["same-origin", "cross-site"], null, null));
+
+    [Fact]
+    public void Several_origins_joined_in_one_header_are_refused()
+        => Assert.False(FetchMetadataPolicy.IsAllowed(["cross-site"], "https://backoffice.example.test, https://evil.test", Host));
+
+    [Fact]
     public void Origin_equal_to_backoffice_host_is_allowed()
         => Assert.True(FetchMetadataPolicy.IsAllowed(["cross-site"], "https://backoffice.example.test", Host));
 
