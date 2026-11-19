@@ -208,6 +208,13 @@ Work stopped after Task 14. Nothing is committed. The 19 line is green locally; 
 8. `gh release create release/19.0.0-rc.1 --prerelease --title "19.0.0-rc.1" --notes "Built against Umbraco 19.0.0-rc1, not yet verified on 19 stable. <19 e2e result if it failed>"`. Leave 18 as Latest.
 9. Check nuget.org lists `19.0.0-rc.1` (no Marketplace tag). The next legacy 17/18 release drops the stray lock files from those nupkgs.
 
+### Release checks result (2026-11-19, run 44523985103 on be170cc, after one re-run of the apt flakes)
+
+- Green: `integration-sqlserver` 17, 18 and 19; e2e 17 and 18 (floor and latest); e2e 19 floor.
+- Red, advisory: e2e 19 latest. `activity.spec.ts:194` ("your activity opens from the profile") times out opening the profile panel; 7 of 8 specs pass. Same result on both runs. Cause unconfirmed (probably a profile panel change in a later 19 prerelease; the same test passes on the 19 floor).
+- Pre-sign-in 401 from core on `user/current/configuration` on 19: allowed in `tests/e2e/support/console-guard.ts` (be170cc).
+- Release notes line: "e2e on the latest 19 prerelease fails opening the profile panel; checked by hand on a live 19 site." Do the hand check first: sign in, click the avatar, open Your activity.
+
 ## Milestone commit (Umbraco 19 line)
 
 ```bash
