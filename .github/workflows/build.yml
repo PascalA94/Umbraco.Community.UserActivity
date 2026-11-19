@@ -60,12 +60,12 @@ jobs:
         if: matrix.leg == 'floor'
         run: git diff --exit-code -- '**/packages.*.lock.json'
 
-      # Newest stable Umbraco.AI.Core on this line (newest prerelease on 19, until a stable 19 exists), from nuget.org's public index; written to the job environment.
+      # Newest stable Umbraco.AI.Core on this line, or the newest prerelease while the line has no stable (19 until it ships), from nuget.org's public index; written to the job environment.
       - name: Resolve latest Umbraco.AI.Core
         if: matrix.leg == 'latest'
         run: |
           version="$(curl -fsSL https://api.nuget.org/v3-flatcontainer/umbraco.ai.core/index.json \
-            | python3 -c 'import json,sys; line=sys.argv[1]; v=[x for x in json.load(sys.stdin)["versions"] if x.split(".")[0]==line and (line=="19" or "-" not in x)]; print(v[-1] if v else "")' "$UmbracoMajor")"
+            | python3 -c 'import json,sys; line=sys.argv[1]; v=[x for x in json.load(sys.stdin)["versions"] if x.split(".")[0]==line]; s=[x for x in v if "-" not in x]; print((s or v or [""])[-1])' "$UmbracoMajor")"
           test -n "$version"
           echo "AIRuntimeVersion=$version" >> "$GITHUB_ENV"
 
@@ -150,6 +150,17 @@ jobs:
           rm -rf node_modules
           npm ci --ignore-scripts
           npm i --no-save --ignore-scripts --save-exact "@umbraco-cms/backoffice@19.0.0-rc1"
+          npx tsc --noEmit
+
+      # The floor above is pinned; this follows later 19 builds (rc.N, then stable) so a typing break shows up before a release.
+      - name: Type-check against the newest @umbraco-cms/backoffice 19
+        run: |
+          tmp="$(mktemp -d)"
+          cp -R "$CLIENT_DIR/." "$tmp/"
+          cd "$tmp"
+          rm -rf node_modules
+          npm ci --ignore-scripts
+          npm i --no-save --ignore-scripts --save-exact "@umbraco-cms/backoffice@^19.0.0-rc1"
           npx tsc --noEmit
 
   secrets:
