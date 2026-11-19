@@ -111,6 +111,22 @@ public class CrossSiteRequestTests : ApiTestBase
     }
 
     [Test]
+    public async Task CrossSite_403_OnEventDetail_AndNoViewRow_BeforeTheEventIsLookedUp()
+    {
+        HttpClient client = await CreateAuthenticatedClientAsync(await Users.CreateAdminAsync());
+
+        // The id need not exist: the filter refuses before the action, so a cross-site caller learns nothing, not even a 404.
+        HttpResponseMessage refused = await GetAsync(client, Base + "events/core/1", "cross-site");
+
+        Assert.That(refused.StatusCode, Is.EqualTo(HttpStatusCode.Forbidden));
+        Assert.That(Rows(ViewLogger.ViewedEventType), Is.EqualTo(0));
+
+        HttpResponseMessage sameOrigin = await GetAsync(client, Base + "events/core/1", "same-origin");
+
+        Assert.That(sameOrigin.StatusCode, Is.Not.EqualTo(HttpStatusCode.Forbidden), "same-origin reaches the action");
+    }
+
+    [Test]
     public async Task CrossSite_403_OnExport_AndNoExportRow_AndLockNotTaken()
     {
         IUser wren = await Users.CreateAsync("Wren Writer", ["writer"]);
