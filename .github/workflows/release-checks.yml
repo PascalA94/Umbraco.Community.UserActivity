@@ -51,6 +51,10 @@ jobs:
           cache: true
           cache-dependency-path: '**/packages.*.lock.json'
 
+      # Hosted images ship SDK 11, and with no global.json `dotnet` would pick it for 17 and 18 too. Pin the line's SDK.
+      - name: Pin the SDK to the line
+        run: bash build/pin-sdk.sh ${{ matrix.line == '19' && '11' || '10' }}
+
       - name: Restore (locked, floor)
         run: dotnet restore src/Umbraco.Community.UserActivity.slnx --locked-mode
 
@@ -133,6 +137,10 @@ jobs:
           # NuGet cache keyed on the lock files. Not used in publish.yml, so a release never restores from a PR-filled cache.
           cache: true
           cache-dependency-path: '**/packages.*.lock.json'
+
+      # Hosted images ship SDK 11, and with no global.json `dotnet` would pick it for 17 and 18 too. Pin the line's SDK.
+      - name: Pin the SDK to the line
+        run: bash build/pin-sdk.sh ${{ matrix.line == '19' && '11' || '10' }}
 
       - name: Setup Node
         uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0

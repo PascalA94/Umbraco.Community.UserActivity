@@ -41,3 +41,6 @@ umbraco-package-schema.json
 .env
 *.pfx
 spikes/
+
+# Written by build/pin-sdk.sh in CI to pin the line's SDK; never committed.
+/global.json

@@ -70,6 +70,10 @@ jobs:
         with:
           dotnet-version: ${{ steps.lines.outputs.sdk }}
 
+      # Hosted images ship SDK 11, and with no global.json `dotnet` would pick it for 17 and 18 too. Pin the line's SDK.
+      - name: Pin the SDK to the line
+        run: bash build/pin-sdk.sh ${{ steps.lines.outputs.sdk == '11.x' && '11' || '10' }}
+
       # The tag's lines are restored (locked), built, tested and checked for known advisories before anything is packed.
       - name: Build, test and audit the tag's lines
         env:
