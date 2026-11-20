@@ -51,6 +51,10 @@ jobs:
           cache: true
           cache-dependency-path: '**/packages.*.lock.json'
 
+      # Hosted images ship SDK 11, and with no global.json `dotnet` would pick it for 17 and 18 too. Pin the line's SDK.
+      - name: Pin the SDK to the line
+        run: bash build/pin-sdk.sh ${{ matrix.line == '19' && '11' || '10' }}
+
       # The package project embeds wwwroot, so the committed client build must be present; the client job proves it is fresh.
       - name: Restore (locked)
         if: matrix.leg == 'floor'
@@ -207,6 +211,10 @@ jobs:
           # NuGet cache keyed on the lock files. Not used in publish.yml, so a release never restores from a PR-filled cache.
           cache: true
           cache-dependency-path: '**/packages.*.lock.json'
+
+      # Hosted images ship SDK 11, and with no global.json `dotnet` would pick it for 17 and 18 too. Pin the line's SDK.
+      - name: Pin the SDK to the line
+        run: bash build/pin-sdk.sh ${{ matrix.line == '19' && '11' || '10' }}
       - name: Restore (locked)
         run: dotnet restore "$SLN" --locked-mode
       - name: Vulnerable packages (direct and transitive)
