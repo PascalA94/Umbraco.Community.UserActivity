@@ -4,8 +4,8 @@
 
 | Package version | Umbraco | Supported |
 |---|---|---|
-| 17.x | 17 (17.8.0 or later) | Yes |
-| 18.x | 18 (18.3.0 or later) | Yes |
+| 17.x | 17 (17.8.2 or later) | Yes |
+| 18.x | 18 (18.3.2 or later) | Yes |
 
 Security fixes are released as patch versions on each supported line.
 

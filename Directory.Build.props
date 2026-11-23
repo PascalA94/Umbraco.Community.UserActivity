@@ -10,20 +10,20 @@
     these two properties (17.*, 18.* or 19.*-*, the last because 19 has only prereleases so far) and restore unlocked (force-evaluate, RestoreLockedMode=false); the lock files
     they rewrite are never committed. Nothing else overrides these properties.
 
-    Floors never go below 17.8.0 / 18.3.0: they sit above the 27 Oct 2026 advisories. Lowering one needs a security
-    review first.
+    Floors never go below 17.8.2 / 18.3.2: they sit above the 27 Oct 2026 advisories and GHSA-348f-9mg8-rhv4 (Examine
+    members index, repository advisory that osv and check-vulnerable do not see). Lowering one needs a security review first.
   -->
   <PropertyGroup>
     <UmbracoMajor Condition="'$(UmbracoMajor)' == ''">18</UmbracoMajor>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(UmbracoMajor)' == '17'">
-    <UmbracoFloor>17.8.0</UmbracoFloor>
+    <UmbracoFloor>17.8.2</UmbracoFloor>
     <UmbracoNextMajor>18.0.0</UmbracoNextMajor>
     <DefineConstants>$(DefineConstants);UMBRACO_17</DefineConstants>
   </PropertyGroup>
   <PropertyGroup Condition="'$(UmbracoMajor)' == '18'">
-    <UmbracoFloor>18.3.0</UmbracoFloor>
+    <UmbracoFloor>18.3.2</UmbracoFloor>
     <UmbracoNextMajor>19.0.0</UmbracoNextMajor>
     <DefineConstants>$(DefineConstants);UMBRACO_18</DefineConstants>
   </PropertyGroup>
@@ -94,9 +94,14 @@
          19 is released from release/19.<minor>.<patch>[-suffix] and its version comes from the tag (-p:Version=), not from these.
          An empty suffix is a stable release (17.0.0 and 18.0.0); set it to alpha.1 for a prerelease. -->
     <PackageMinor>1</PackageMinor>
-    <PackagePatch>1</PackagePatch>
+    <PackagePatch>2</PackagePatch>
     <PackageVersionSuffix></PackageVersionSuffix>
-    <UmbracoRange>[$(UmbracoFloor), $(UmbracoNextMajor))</UmbracoRange>
+    <!-- The -alpha upper bound excludes the next major's prereleases: NuGet orders 19.0.0-rc1 below 19.0.0, so a plain
+         [18.3.2, 19.0.0) would let an Umbraco 19 release-candidate site install the 18.x package silently. With -alpha
+         NuGet warns (NU1608) instead; it is a warning, not a block, unless the site treats warnings as errors.
+         Not -0: nuget.org rejects a manifest whose dependency version has a prerelease label starting with a digit
+         (400 "invalid Version: '20.0.0-0'"), even though pack and restore accept it. -->
+    <UmbracoRange>[$(UmbracoFloor), $(UmbracoNextMajor)-alpha)</UmbracoRange>
     <UmbracoTestVersion Condition="'$(UmbracoTestVersion)' == ''">$(UmbracoFloor)</UmbracoTestVersion>
     <UmbracoDemoVersion Condition="'$(UmbracoDemoVersion)' == ''">$(UmbracoFloor)</UmbracoDemoVersion>
 

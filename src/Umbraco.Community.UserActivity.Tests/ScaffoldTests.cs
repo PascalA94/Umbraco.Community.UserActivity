@@ -10,13 +10,13 @@ public class ScaffoldTests
 #if UMBRACO_19
     // First, because UMBRACO_18 is also defined on 19.
     private const int ExpectedMajor = 19;
-    private const string ExpectedRange = "[19.0.0-rc1, 20.0.0)";
+    private const string ExpectedRange = "[19.0.0-rc1, 20.0.0-alpha)";
 #elif UMBRACO_17
     private const int ExpectedMajor = 17;
-    private const string ExpectedRange = "[17.8.0, 18.0.0)";
+    private const string ExpectedRange = "[17.8.2, 18.0.0-alpha)";
 #else
     private const int ExpectedMajor = 18;
-    private const string ExpectedRange = "[18.3.0, 19.0.0)";
+    private const string ExpectedRange = "[18.3.2, 19.0.0-alpha)";
 #endif
 
     [Fact]
@@ -50,7 +50,7 @@ public class ScaffoldTests
                 var deps = group.Elements(ns + "dependency").ToList();
                 Assert.NotEmpty(deps);
                 Assert.All(deps, d => Assert.StartsWith("Umbraco.Cms.", (string)d.Attribute("id")!, StringComparison.Ordinal));
-                // The portfolio floors (17.8.0 / 18.3.0) sit above the 27 Oct 2026 advisories; a broken UmbracoRange
+                // The portfolio floors (17.8.2 / 18.3.2) sit above the 27 Oct 2026 advisories and GHSA-348f-9mg8-rhv4; a broken UmbracoRange
                 // must fail here, not ship.
                 Assert.All(deps, d => Assert.Equal(ExpectedRange, (string)d.Attribute("version")!));
             }
