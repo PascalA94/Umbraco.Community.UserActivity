@@ -1,4 +1,4 @@
-# osv-scanner reads a csproj version range such as [18.3.0, 19.0.0) as a version and can match advisories that
+# osv-scanner reads a csproj version range such as [18.3.2, 19.0.0-alpha) as a version and can match advisories that
 # were fixed long before the floor. The lock files pin the resolved versions and are scanned too, so real issues on
 # the floor are still reported. Pass this file with --config=./osv-scanner.toml (build.yml does).
 #
@@ -7,7 +7,7 @@
 # The one exception is a dated entry for a dev-only npm build tool that never ships in the nupkg.
 [[IgnoredVulns]]
 id = "GHSA-6ffg-mjg7-585x"
-reason = "Affects Umbraco.Cms.Api.Management < 14.3.3 and 15.0.0-rc1 to 15.2.3 only; the package floors (17.8.0 and 18.3.0) are above 15.2.3."
+reason = "Affects Umbraco.Cms.Api.Management < 14.3.3 and 15.0.0-rc1 to 15.2.3 only; the package floors (17.8.2 and 18.3.2) are above 15.2.3."
 
 [[IgnoredVulns]]
 id = "GHSA-fc5q-39xc-vjpf"

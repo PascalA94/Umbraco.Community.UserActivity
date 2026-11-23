@@ -1835,8 +1835,8 @@
       "umbraco.community.useractivity": {
         "type": "Project",
         "dependencies": {
-          "Umbraco.Cms.Api.Management": "[19.0.0-rc1, 20.0.0)",
-          "Umbraco.Cms.Web.Common": "[19.0.0-rc1, 20.0.0)"
+          "Umbraco.Cms.Api.Management": "[19.0.0-rc1, 20.0.0-alpha)",
+          "Umbraco.Cms.Web.Common": "[19.0.0-rc1, 20.0.0-alpha)"
         }
       }
     }

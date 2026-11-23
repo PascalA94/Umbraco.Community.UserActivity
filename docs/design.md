@@ -5,7 +5,7 @@
 | Package | `Umbraco.Community.UserActivity` (Pascal, 2026-11-07). **One NuGet package**, no add-ons. ID free on 2026-11-07 [verified: nuget v3-flatcontainer 404]; private repo created |
 | Owner | Pascal Meyer (`PascalA94`), personal |
 | Size | L-, about **17-21 h** AI time for 0.1 (M0-M4), plus **3-3.5 h** for the recorder in the next minor (M5). See `plan.md` |
-| Lines | **Both from the start**: `17.x` on CMS `[17.8.0, 18.0.0)`, `18.x` on `[18.3.0, 19.0.0)`. One codebase, `UmbracoMajor` switch, both packed from one commit |
+| Lines | **Both from the start**: `17.x` on CMS `[17.8.2, 18.0.0-alpha)`, `18.x` on `[18.3.2, 19.0.0-alpha)`. One codebase, `UmbracoMajor` switch, both packed from one commit |
 | Status | Design, 2026-11-07, with Pascal's decisions applied the same day. Nothing built |
 | Inputs | the scope notes, the portfolio README, the Umbraco pitfalls reference, the Backoffice Tidy design and the Umbraco.Community.ArchivedUsers repo (house style for the client, Management API and user section), the Forms compliance design (audit-log privacy pattern) |
 

@@ -10,7 +10,7 @@ Token rules and the 14 CI rules: the portfolio README in Pascal's private worksp
 
 ## Lines and versions
 
-- **One branch, three lines.** `UmbracoMajor` (`17`, `18` or `19`, default `18`, set as a property or an environment variable) picks the CMS range (`[17.8.0, 18.0.0)`, `[18.3.0, 19.0.0)` or `[19.0.0-rc1, 20.0.0)`), the package version (`17.x.y` or `18.x.y`; 19 takes its version from the tag, `19.0.0-rc.1`, passed as `-p:Version=`), the `UMBRACO_17` / `UMBRACO_18` / `UMBRACO_19` constants and its own `packages.<line>.lock.json`, `obj/<line>` and `bin/<line>`. 19 defines `UMBRACO_19;UMBRACO_18`, so test `UMBRACO_19` first in any `#if` chain. 19 targets `net11.0` and needs the .NET 11 SDK first on PATH; 17 and 18 stay on `net10.0`. `eng/lines.txt` lists the lines; `bash build/test.sh` runs the suites once per line.
+- **One branch, three lines.** `UmbracoMajor` (`17`, `18` or `19`, default `18`, set as a property or an environment variable) picks the CMS range (`[17.8.2, 18.0.0-alpha)`, `[18.3.2, 19.0.0-alpha)` or `[19.0.0-rc1, 20.0.0-alpha)`; the `-alpha` keeps the next major's prereleases out, and not `-0` because nuget.org rejects a digit-led prerelease label in a dependency version), the package version (`17.x.y` or `18.x.y`; 19 takes its version from the tag, `19.0.0-rc.1`, passed as `-p:Version=`), the `UMBRACO_17` / `UMBRACO_18` / `UMBRACO_19` constants and its own `packages.<line>.lock.json`, `obj/<line>` and `bin/<line>`. 19 defines `UMBRACO_19;UMBRACO_18`, so test `UMBRACO_19` first in any `#if` chain. 19 targets `net11.0` and needs the .NET 11 SDK first on PATH; 17 and 18 stay on `net10.0`. `eng/lines.txt` lists the lines; `bash build/test.sh` runs the suites once per line.
 - **One client bundle serves all lines.** `@umbraco-cms/backoffice` is a Vite external, the committed `wwwroot/` is built against `^17.8.0`, and CI type-checks the source against `^18.3.0` and `19.0.0-rc1`. Split into two bundles only if a line ever needs different code. If the two lines' APIs ever force different source, move to one branch per line instead.
 - The NuGet ID, App_Plugins folder, aliases, and any migration plan, table or route names are permanent once released.
 
@@ -56,5 +56,5 @@ bash build/check-vulnerable.sh
 
 ## Keep
 
-- Floors never below 17.8.0 / 18.3.0. The repo is public: no reviews, plans of record or local paths in it.
+- Floors never below 17.8.2 / 18.3.2 (GHSA-348f-9mg8-rhv4). Check `gh api /repos/umbraco/Umbraco-CMS/security-advisories` before each release: osv and `check-vulnerable.sh` don't see Umbraco's repository advisories. The repo is public: no reviews, plans of record or local paths in it.
 - `docs/` holds only `design.md`, `plan.md`, `spikes.md`. Fake test secrets carry `// gitleaks:allow` from their first commit.

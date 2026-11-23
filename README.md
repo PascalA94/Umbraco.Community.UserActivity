@@ -7,7 +7,7 @@ A per-user Activity tab and a global Activity view under Users, reading Umbraco'
 [![NuGet downloads](https://img.shields.io/nuget/dt/Umbraco.Community.UserActivity)](https://www.nuget.org/packages/Umbraco.Community.UserActivity)
 [![Licence: MIT](https://img.shields.io/badge/licence-MIT-blue)](https://github.com/PascalA94/Umbraco.Community.UserActivity/blob/main/LICENSE)
 
-A community package, not made or supported by Umbraco HQ. Requires Umbraco 17 (17.8.0 or later) or Umbraco 18 (18.3.0 or later), on .NET 10, or Umbraco 19 (19.0.0-rc1 or later, prerelease), on .NET 11. Built against Umbraco 19.0.0-rc1, not yet verified on 19 stable.
+A community package, not made or supported by Umbraco HQ. Requires Umbraco 17 (17.8.2 or later) or Umbraco 18 (18.3.2 or later), on .NET 10, or Umbraco 19 (19.0.0-rc1 or later, prerelease), on .NET 11. Built against Umbraco 19.0.0-rc1, not yet verified on 19 stable.
 
 ![The global Activity view under Users](https://raw.githubusercontent.com/PascalA94/Umbraco.Community.UserActivity/main/assets/screenshots/screenshot-01-global-view.png)
 
@@ -15,9 +15,11 @@ A community package, not made or supported by Umbraco HQ. Requires Umbraco 17 (1
 
 | Package version | Umbraco |
 |---|---|
-| 17.x | 17 (17.8.0 or later) |
-| 18.x | 18 (18.3.0 or later) |
+| 17.x | 17 (17.8.2 or later) |
+| 18.x | 18 (18.3.2 or later) |
 | 19.0.0-rc.N | 19 (19.0.0-rc1 or later). Built against Umbraco 19.0.0-rc1, not yet verified on 19 stable. |
+
+From 17.1.2 and 18.1.2 the packages require Umbraco 17.8.2 and 18.3.2, which fix [GHSA-348f-9mg8-rhv4](https://github.com/umbraco/Umbraco-CMS/security/advisories/GHSA-348f-9mg8-rhv4) (sensitive member property values in the Examine members index). From the same release the upper bound is `-alpha` (`[18.3.2, 19.0.0-alpha)`), which also excludes the next major's prereleases, so installing 18.x on an Umbraco 19 release-candidate site gives a NuGet warning (NU1608) instead of a silent install; earlier versions said nothing.
 
 ## Install
 
